@@ -1,0 +1,31 @@
+name: CML
+
+on: [push]
+
+jobs:
+  train-and-report:
+    runs-on: ubuntu-latest
+    permissions:
+        contents: write
+        pull-requests: write
+        repository-projects: write
+        id-token: write
+    container: docker://ghcr.io/iterative/cml:0-dvc2-base1
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Train model
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pip install -r requirements.txt
+          python ml/train.py
+          
+          # Create CML report
+          echo "## Model Metrics" > report.md
+          cat metrics.txt >> report.md
+          
+          echo "## Confusion Matrix" >> report.md
+          echo "![](./confusion_matrix.png)" >> report.md
+          
+          cml comment create report.md
