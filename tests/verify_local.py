@@ -21,7 +21,13 @@ def test_api():
         print(f"Response: {response.json()}")
         
         if response.status_code == 200:
+            data = response.json()
             print("SUCCESS: API returned 200")
+            print(f"Detections: {len(data['detections'])}")
+            print(f"Violations: {len(data['violations'])}")
+            print(f"Compliant: {data['compliant']}")
+            if data['violations']:
+                print("Violations found:", data['violations'])
         else:
             print("FAILURE: API returned error")
             sys.exit(1)

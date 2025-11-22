@@ -47,11 +47,5 @@ class YOLOModel:
                     "confidence": 0.95,
                     "class_id": 0,
                     "class_name": "person"
-                },
-                {
-                    "box": [50.0, 50.0, 100.0, 100.0],
-                    "confidence": 0.88,
-                    "class_id": 1,
-                    "class_name": "helmet"
                 }
             ]
