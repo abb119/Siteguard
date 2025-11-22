@@ -46,5 +46,20 @@ services:
     depends_on:
       - prometheus
 
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: siteguard-frontend
+    ports:
+      - "8501:8501"
+    command: streamlit run frontend/app.py --server.port 8501 --server.address 0.0.0.0
+    volumes:
+      - .:/app
+    environment:
+      - API_URL=http://api:8000/detect
+    depends_on:
+      - api
+
 volumes:
   postgres_data:
