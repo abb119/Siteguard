@@ -7,12 +7,36 @@ import sys
 import numpy as np
 from PIL import Image
 
-def download_dataset():
+# Try to import Roboflow, fall back to synthetic if unavailable
+try:
+    from roboflow import Roboflow
+    HAS_ROBOFLOW = True
+except ImportError:
+    HAS_ROBOFLOW = False
+    print("Warning: Roboflow not installed. Using synthetic dataset.")
+
+
+def download_real_dataset():
     """
-    Download a public PPE detection dataset.
-    For this demo, we'll create a minimal synthetic dataset.
+    Download real PPE dataset from Roboflow.
+    Requires ROBOFLOW_API_KEY environment variable.
     """
+    api_key = os.getenv("ROBOFLOW_API_KEY")
+    if not api_key:
+        raise ValueError("ROBOFLOW_API_KEY environment variable not set")
     
+    rf = Roboflow(api_key=api_key)
+    project = rf.workspace().project("hard-hat-detection")
+    dataset = project.version(1).download("yolov8")
+    
+    print(f"✓ Real dataset downloaded from Roboflow")
+    return dataset.location
+
+
+def create_synthetic_dataset():
+    """
+    Create a minimal synthetic dataset for demo/testing purposes.
+    """
     dataset_dir = "../datasets/ppe"
     
     # Create directory structure
@@ -21,12 +45,9 @@ def download_dataset():
     os.makedirs(f"{dataset_dir}/valid/images", exist_ok=True)
     os.makedirs(f"{dataset_dir}/valid/labels", exist_ok=True)
     
-    print("Dataset directory structure created.")
-    
-    # Create synthetic images and labels for demo
     print("Generating synthetic dataset for CI/CD demo...")
     
-    # Create a few dummy image/label pairs
+    # Create synthetic images and labels
     for split in ['train', 'valid']:
         num_samples = 10 if split == 'train' else 5
         
@@ -40,7 +61,6 @@ def download_dataset():
             img.save(img_path)
             
             # Create label file (YOLO format: class_id center_x center_y width height)
-            # Simulate detections: helmet, no-helmet, vest, no-vest
             label_path = f"{dataset_dir}/{split}/labels/sample_{i}.txt"
             with open(label_path, "w") as f:
                 # Add 1-2 random bounding boxes
@@ -55,15 +75,32 @@ def download_dataset():
     print(f"✓ Synthetic dataset created at {dataset_dir}")
     print("✓ Training set: 10 images with labels")
     print("✓ Validation set: 5 images with labels")
-    print("Note: This is a minimal dataset for pipeline demonstration.")
-    print("For real training, use a proper dataset from Roboflow or custom annotations.")
-    
     return dataset_dir
+
+
+def download_dataset():
+    """
+    Main dataset download function.
+    Tries Roboflow first, falls back to synthetic data.
+    """
+    # Try real dataset from Roboflow
+    if HAS_ROBOFLOW and os.getenv("ROBOFLOW_API_KEY"):
+        try:
+            return download_real_dataset()
+        except Exception as e:
+            print(f"Warning: Could not download from Roboflow: {e}")
+            print("Falling back to synthetic dataset...")
+    
+    # Fallback to synthetic dataset
+    return create_synthetic_dataset()
+
 
 if __name__ == "__main__":
     try:
         dataset_path = download_dataset()
         print(f"\nDataset ready at: {dataset_path}")
+        print("\nNote: For production training, set ROBOFLOW_API_KEY environment variable")
+        print("to download real PPE detection datasets from Roboflow.")
     except Exception as e:
-        print(f"Error downloading dataset: {e}")
+        print(f"Error: {e}")
         sys.exit(1)

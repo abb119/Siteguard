@@ -25,9 +25,7 @@ jobs:
         
     - name: Run tests
       run: |
-        # We don't have many tests yet, but this placeholder ensures the workflow runs
-        echo "Running tests..."
-        # pytest tests/
+        pytest tests/ -v --tb=short
 
   build-and-push:
     needs: test

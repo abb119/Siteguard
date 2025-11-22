@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.model_service import YOLOModel
 from app.services.compliance_service import ComplianceService
+from app.services.alert_service import AlertService
 from app.db.database import get_db
 from app.db.models import Detection, Incident
 from typing import List, Dict, Any
@@ -9,6 +10,7 @@ from typing import List, Dict, Any
 router = APIRouter()
 model = YOLOModel()
 compliance_service = ComplianceService()
+alert_service = AlertService()
 
 @router.post("/detect", response_model=Dict[str, Any])
 async def detect_objects(file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
@@ -37,8 +39,12 @@ async def detect_objects(file: UploadFile = File(...), db: AsyncSession = Depend
                 details=violation['details']
             )
             db.add(incident)
-            # Log alert (console for now)
-            print(f"ALERT: {violation['violation_type']} detected! Severity: {violation['severity']}")
+            
+            # Send real-time alert via Slack
+            alert_service.send_alert(
+                violation_type=violation['violation_type'],
+                details=violation['details']
+            )
             
         if violations:
             await db.commit()
