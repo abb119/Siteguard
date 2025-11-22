@@ -4,14 +4,13 @@ Uses a public dataset that doesn't require authentication.
 """
 import os
 import sys
-import urllib.request
-import zipfile
-import shutil
+import numpy as np
+from PIL import Image
 
 def download_dataset():
     """
     Download a public PPE detection dataset.
-    For this demo, we'll use a known public dataset or create a minimal synthetic one.
+    For this demo, we'll create a minimal synthetic dataset.
     """
     
     dataset_dir = "../datasets/ppe"
@@ -24,32 +23,38 @@ def download_dataset():
     
     print("Dataset directory structure created.")
     
-    # For CI/CD demo purposes, we'll create a minimal synthetic dataset
-    # In production, you would use the Roboflow API:
-    # from roboflow import Roboflow
-    # rf = Roboflow(api_key="YOUR_API_KEY")
-    # project = rf.workspace().project("ppe-detection")
-    # dataset = project.version(1).download("yolov8")
+    # Create synthetic images and labels for demo
+    print("Generating synthetic dataset for CI/CD demo...")
     
-    print("Note: Using minimal synthetic dataset for CI/CD demo.")
-    print("In production, integrate with Roboflow API for real dataset.")
-    
-    # Create a minimal YOLO format label file as placeholder
-    # Format: class_id center_x center_y width height (normalized 0-1)
-    
-    # Create a few dummy label files
-    for i in range(5):
-        # Training set
-        with open(f"{dataset_dir}/train/labels/sample_{i}.txt", "w") as f:
-            # Simulate detections: helmet, no-helmet, vest, no-vest
-            f.write(f"{i % 4} 0.5 0.5 0.3 0.3\n")
+    # Create a few dummy image/label pairs
+    for split in ['train', 'valid']:
+        num_samples = 10 if split == 'train' else 5
         
-        # Validation set
-        with open(f"{dataset_dir}/valid/labels/sample_{i}.txt", "w") as f:
-            f.write(f"{i % 4} 0.5 0.5 0.3 0.3\n")
+        for i in range(num_samples):
+            # Create a simple synthetic image (640x640 blank with random noise)
+            img_array = np.random.randint(0, 255, (640, 640, 3), dtype=np.uint8)
+            img = Image.fromarray(img_array)
+            
+            # Save image
+            img_path = f"{dataset_dir}/{split}/images/sample_{i}.jpg"
+            img.save(img_path)
+            
+            # Create label file (YOLO format: class_id center_x center_y width height)
+            # Simulate detections: helmet, no-helmet, vest, no-vest
+            label_path = f"{dataset_dir}/{split}/labels/sample_{i}.txt"
+            with open(label_path, "w") as f:
+                # Add 1-2 random bounding boxes
+                for j in range(np.random.randint(1, 3)):
+                    class_id = np.random.randint(0, 4)  # 0-3 for our 4 classes
+                    cx = np.random.uniform(0.2, 0.8)
+                    cy = np.random.uniform(0.2, 0.8)
+                    w = np.random.uniform(0.1, 0.3)
+                    h = np.random.uniform(0.1, 0.3)
+                    f.write(f"{class_id} {cx} {cy} {w} {h}\n")
     
     print(f"✓ Synthetic dataset created at {dataset_dir}")
-    print("✓ Contains 5 training and 5 validation samples")
+    print("✓ Training set: 10 images with labels")
+    print("✓ Validation set: 5 images with labels")
     print("Note: This is a minimal dataset for pipeline demonstration.")
     print("For real training, use a proper dataset from Roboflow or custom annotations.")
     
