@@ -70,15 +70,12 @@ if uploaded_file is not None:
                         cls_name = det["class_name"]
                         conf = det["confidence"]
                         
-                        color = "green"
+                        color = "green" # Default compliant
                         label = f"{cls_name} {conf:.2f}"
                         
-                        # If it's a person, check for violations
-                        if cls_name == "person":
-                            violation = get_violation_info(box, violations)
-                            if violation:
-                                color = "red"
-                                label += f" [{violation['violation_type']}]"
+                        if cls_name in ["no-helmet", "no-vest"]:
+                            color = "red"
+                            label += " [VIOLATION]"
                         
                         draw.rectangle(box, outline=color, width=3)
                         draw.text((box[0], box[1] - 10), label, fill=color)

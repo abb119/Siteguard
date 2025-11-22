@@ -13,7 +13,25 @@ import random
 class YOLOModel:
     def __init__(self, model_path: str = "yolov8n.pt"):
         if HAS_YOLO:
-            self.model = YOLO(model_path)
+            # Try to load trained model first, then fallback to pretrained
+            model_paths_to_try = [
+                "siteguard_model/yolov8n_ppe/weights/best.pt",  # Trained model
+                model_path,  # Default pretrained model
+            ]
+            
+            self.model = None
+            for path in model_paths_to_try:
+                try:
+                    if os.path.exists(path):
+                        print(f"Loading model from {path}")
+                        self.model = YOLO(path)
+                        break
+                except Exception as e:
+                    print(f"Failed to load model from {path}: {e}")
+                    continue
+            
+            if self.model is None:
+                print("Warning: Could not load any model, using mock")
         else:
             self.model = None
 
@@ -41,11 +59,18 @@ class YOLOModel:
             return detections
         else:
             # Mock response for testing/verification when YOLO is not available
+            # Classes: 0: helmet, 1: no-helmet, 2: vest, 3: no-vest
             return [
                 {
-                    "box": [100.0, 100.0, 200.0, 200.0],
+                    "box": [100.0, 100.0, 150.0, 150.0],
                     "confidence": 0.95,
-                    "class_id": 0,
-                    "class_name": "person"
+                    "class_id": 1,
+                    "class_name": "no-helmet"
+                },
+                {
+                    "box": [100.0, 150.0, 200.0, 250.0],
+                    "confidence": 0.90,
+                    "class_id": 3,
+                    "class_name": "no-vest"
                 }
             ]

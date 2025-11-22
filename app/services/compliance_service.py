@@ -9,45 +9,26 @@ class ComplianceService:
         """
         violations = []
         
-        # Separate detections by class
-        persons = [d for d in detections if d['class_name'] == 'person']
-        helmets = [d for d in detections if d['class_name'] == 'helmet']
-        vests = [d for d in detections if d['class_name'] == 'vest']
+        # New Logic: The model directly detects violations (no-helmet, no-vest)
+        # Classes: helmet, no-helmet, vest, no-vest
         
-        for person in persons:
-            person_box = person['box']
-            has_helmet = self._check_overlap(person_box, helmets)
-            has_vest = self._check_overlap(person_box, vests)
+        for det in detections:
+            name = det['class_name']
+            box = det['box']
+            conf = det['confidence']
             
-            if not has_helmet:
+            if name == 'no-helmet':
                 violations.append({
                     "violation_type": "NO_HELMET",
                     "severity": "HIGH",
-                    "details": {"person_box": person_box}
+                    "details": {"box": box, "confidence": conf}
                 })
-                
-            if not has_vest:
+            
+            if name == 'no-vest':
                 violations.append({
                     "violation_type": "NO_VEST",
                     "severity": "MEDIUM",
-                    "details": {"person_box": person_box}
+                    "details": {"box": box, "confidence": conf}
                 })
-                
-        return violations
 
-    def _check_overlap(self, person_box, object_list):
-        """
-        Simple overlap check. In a real scenario, we'd use IoU.
-        Here we check if the object center is inside the person box (roughly).
-        """
-        px1, py1, px2, py2 = person_box
-        
-        for obj in object_list:
-            ox1, oy1, ox2, oy2 = obj['box']
-            ox_center = (ox1 + ox2) / 2
-            oy_center = (oy1 + oy2) / 2
-            
-            # Check if object center is within person box
-            if px1 < ox_center < px2 and py1 < oy_center < py2:
-                return True
-        return False
+        return violations
