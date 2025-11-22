@@ -58,6 +58,6 @@ jobs:
         with:
           context: .
           file: docker/Dockerfile
-          push: true
+          push: false  # Only build, don't push (demo purposes)
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
