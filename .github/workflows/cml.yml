@@ -19,6 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
+      - name: Install system dependencies
+        run: |
+          apt-get update
+          apt-get install -y libgl1 libglib2.0-0
+      
       - name: Install Python dependencies
         run: |
           pip install ultralytics torch torchvision opencv-python-headless pillow
