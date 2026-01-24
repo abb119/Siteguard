@@ -6,8 +6,12 @@ pydantic-settings==2.1.0
 sqlalchemy==2.0.25
 asyncpg==0.29.0
 alembic==1.13.1
-ultralytics==8.1.0
+ultralytics==8.0.196
+# torch and torchvision are installed in Dockerfile with CPU versions
+# torch==2.0.1
+# torchvision==0.15.2
 opencv-python-headless==4.9.0.80
+mediapipe==0.10.14
 pillow==10.2.0
 prometheus-client==0.19.0
 ruff==0.1.14
@@ -30,3 +34,4 @@ passlib[bcrypt]>=1.7.4
 # Frontend
 streamlit
 requests==2.31.0
+websockets

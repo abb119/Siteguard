@@ -48,9 +48,11 @@ We don't just ship code; we ship quality. Our CI/CD pipeline ensures that every 
 ## ⚡ Quick Start
 
 ### Prerequisites
-- Docker & Docker Compose
+- Python 3.10+
+- Node.js & npm
+- Git
 
-### Run Locally
+### Run Locally (Native)
 
 1.  **Clone the repository**
     ```bash
@@ -58,27 +60,40 @@ We don't just ship code; we ship quality. Our CI/CD pipeline ensures that every 
     cd Siteguard
     ```
 
-2.  **Start the services**
-    ```bash
-    docker-compose up --build
+2.  **Setup Backend**
+    ```powershell
+    # Install dependencies
+    pip install -r requirements.txt
+    
+    # Run Migrations (first time only)
+    $env:DATABASE_URL="sqlite+aiosqlite:///./siteguard.db"; python -m alembic upgrade head
+
+    # Start API
+    $env:DATABASE_URL="sqlite+aiosqlite:///./siteguard.db"; python -m uvicorn app.main:app --reload --port 8000
     ```
 
-3.  **Access the Dashboard**
-    *   Frontend: [http://localhost:8501](http://localhost:8501)
+3.  **Setup Frontend**
+    ```powershell
+    cd frontend-react
+    npm install
+    npm run dev
+    ```
+
+4.  **Access the Application**
+    *   Frontend: [http://localhost:5173](http://localhost:5173)
     *   API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
-    *   Grafana: [http://localhost:3000](http://localhost:3000)
 
 ## 📂 Project Structure
 
 ```
 .
 ├── app/                # FastAPI Backend
-├── frontend/           # Streamlit Dashboard
+├── frontend-react/     # React Frontend (Vite)
 ├── ml/                 # Model Training & Evaluation
 ├── docker/             # Dockerfiles
 ├── tests/              # Automated Tests
 ├── .github/workflows/  # CI/CD & CML Pipelines
-└── docker-compose.yml  # Infrastructure Orchestration
+└── siteguard.db        # SQLite Database
 ```
 
 ---
