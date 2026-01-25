@@ -17,6 +17,7 @@ export const VideoFeed: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const latestResultRef = useRef<FrameResult | null>(null);
+  const capturedFrameRef = useRef<ImageData | null>(null); // Store analyzed frame for sync display
 
   const [activeMode, setActiveMode] = useState<"webcam" | "file" | null>(null);
   const [fps, setFps] = useState(0);
@@ -95,14 +96,15 @@ export const VideoFeed: React.FC = () => {
     if (!activeMode) return;
 
     const wsUrl =
-      import.meta.env.VITE_API_WS_STREAM_URL ||
-      import.meta.env.VITE_API_WS_URL ||
+      import.meta.env.VITE_WS_URL ||
       "ws://127.0.0.1:8000/ws/ppe-stream";
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     let animationFrameId: number;
     let isProcessing = false;
+    let frameSkipCounter = 0;
+    const FRAME_SKIP = 2; // Process every Nth frame (2 = every other frame)
 
     const processLoop = () => {
       if (!videoRef.current || ws.readyState !== WebSocket.OPEN) {
@@ -115,22 +117,33 @@ export const VideoFeed: React.FC = () => {
         return;
       }
 
+      // LOCK-STEP: Only send next frame after previous response received
       if (isProcessing) {
         animationFrameId = requestAnimationFrame(processLoop);
         return;
       }
 
+      // FRAME SKIP: Only process every Nth frame for sync
+      frameSkipCounter++;
+      if (frameSkipCounter < FRAME_SKIP) {
+        animationFrameId = requestAnimationFrame(processLoop);
+        return;
+      }
+      frameSkipCounter = 0;
+
       let canvas = offscreenCanvasRef.current;
       if (!canvas) {
         canvas = document.createElement("canvas");
-        canvas.width = 320;
-        canvas.height = 240;
+        canvas.width = 640;
+        canvas.height = 480;
         offscreenCanvasRef.current = canvas;
       }
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.55);
+        // Save captured frame for synchronized display
+        capturedFrameRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
         const base64 = dataUrl.split(",")[1];
         if (base64) {
           const payload = {
@@ -144,11 +157,13 @@ export const VideoFeed: React.FC = () => {
           };
           ws.send(JSON.stringify(payload));
           isProcessing = true;
+          // Reduced timeout - if no response in 500ms, allow next frame
+          // This prevents complete freeze if a frame is lost
           setTimeout(() => {
             if (isProcessing) {
               isProcessing = false;
             }
-          }, 2500);
+          }, 500);
         }
       }
 
@@ -227,7 +242,25 @@ export const VideoFeed: React.FC = () => {
         return;
       }
 
-      if (videoRef.current && videoRef.current.readyState >= 2) {
+      // Draw the ANALYZED frame (not live video) for perfect sync
+      if (capturedFrameRef.current) {
+        // Scale captured frame to display canvas size
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = capturedFrameRef.current.width;
+        tempCanvas.height = capturedFrameRef.current.height;
+        const tempCtx = tempCanvas.getContext("2d");
+        if (tempCtx) {
+          tempCtx.putImageData(capturedFrameRef.current, 0, 0);
+          ctx.drawImage(
+            tempCanvas,
+            0,
+            0,
+            displayCanvasRef.current.width,
+            displayCanvasRef.current.height
+          );
+        }
+      } else if (videoRef.current && videoRef.current.readyState >= 2) {
+        // Fallback: show live video if no captured frame yet
         ctx.drawImage(
           videoRef.current,
           0,

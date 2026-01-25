@@ -1,22 +1,24 @@
 import { Route, Routes } from "react-router-dom";
-import { Layout } from "./components/Layout";
-import { UploadJobPage } from "./pages/UploadJobPage";
+import { LandingPage } from "./pages/LandingPage";
+import { PPEServicePage } from "./pages/PPEServicePage";
+import { DriverServicePage } from "./pages/DriverServicePage";
 import { JobStatusPage } from "./pages/JobStatusPage";
 import { JobResultPage } from "./pages/JobResultPage";
-import { LabModePage } from "./pages/LabModePage";
-import { DriverDemoPage } from "./pages/DriverDemoPage";
 
 function App() {
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<UploadJobPage />} />
-        <Route path="/driver" element={<DriverDemoPage />} />
-        <Route path="/jobs/:jobId" element={<JobStatusPage />} />
-        <Route path="/jobs/:jobId/result" element={<JobResultPage />} />
-        <Route path="/lab" element={<LabModePage />} />
-      </Routes>
-    </Layout>
+    <Routes>
+      {/* Landing Page - No Layout wrapper */}
+      <Route path="/" element={<LandingPage />} />
+
+      {/* Service Pages */}
+      <Route path="/services/ppe" element={<PPEServicePage />} />
+      <Route path="/services/driver" element={<DriverServicePage />} />
+
+      {/* Job Routes - Nested under services */}
+      <Route path="/jobs/:jobId" element={<JobStatusPage />} />
+      <Route path="/jobs/:jobId/result" element={<JobResultPage />} />
+    </Routes>
   );
 }
 

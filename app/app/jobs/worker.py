@@ -3,8 +3,8 @@ from datetime import datetime, timezone
 import traceback
 from typing import Callable
 
-from app.db.database import AsyncSessionLocal
-from app.db.models import Job, JobStatus, JobArtifact
+from app.app.db.database import AsyncSessionLocal
+from app.app.db.models import Job, JobStatus, JobArtifact
 from .queue import get_next_job, mark_job_done
 from .processors import get_processor
 from .processors.base import ProcessorContext

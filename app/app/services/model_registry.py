@@ -1,7 +1,7 @@
 from threading import Lock
 from typing import Optional
 
-from app.services.model_service import YOLOModel
+from app.app.services.model_service import YOLOModel
 
 _model_lock = Lock()
 _model_instance: Optional[YOLOModel] = None

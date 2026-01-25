@@ -9,15 +9,15 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.api import jobs_routes, routes
-from app.db import models  # noqa: F401
-from app.db.database import Base, engine
-from app.db.seed_db import seed_users
-from app.jobs.cleanup import cleanup_loop
-from app.jobs.worker import job_worker_loop
+from app.app.api import jobs_routes, routes
+from app.app.db import models  # noqa: F401
+from app.app.db.database import Base, engine
+from app.app.db.seed_db import seed_users
+from app.app.jobs.cleanup import cleanup_loop
+from app.app.jobs.worker import job_worker_loop
 
 try:  # Optional video processors (ADAS/DMS)
-    import app.driver  # noqa: F401
+    import app.app.driver  # noqa: F401
 except Exception as exc:  # pragma: no cover - optional dependency
     print(f"WARNING: Skipping driver processors ({exc})")
 
@@ -113,7 +113,7 @@ async def log_requests(request: Request, call_next):
         print(f"DEBUG: Request FAILED: {request.method} {request.url} Error: {e}", flush=True)
         raise e
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory="app/app/static"), name="static")
 
 @app.get("/")
 async def root():

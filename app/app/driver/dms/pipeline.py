@@ -5,9 +5,9 @@ from typing import List
 
 import cv2
 
-from app.db.models import JobType
-from app.jobs.processors.base import JobProcessor, JobResultPayload, JobArtifactPayload, ProcessorContext
-from app.jobs.video_utils import iter_sampled_frames, probe_video
+from app.app.db.models import JobType
+from app.app.jobs.processors.base import JobProcessor, JobResultPayload, JobArtifactPayload, ProcessorContext
+from app.app.jobs.video_utils import iter_sampled_frames, probe_video
 from .face_landmarks import FaceLandmarkExtractor, FaceMetrics
 from .scoring import DmsEventBuilder, FrameObservation
 from .phone_detector import PhoneUsageDetector

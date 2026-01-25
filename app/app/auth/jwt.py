@@ -14,8 +14,8 @@ import os
 # Database dependencies
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.database import get_db
-from app.db.models import User as UserModel
+from app.app.db.database import get_db
+from app.app.db.models import User as UserModel
 
 # Configuration
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production-PLEASE")

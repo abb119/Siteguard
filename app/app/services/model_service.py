@@ -9,7 +9,7 @@ import tempfile
 import torch
 
 class YOLOModel:
-    def __init__(self, model_path: str = "yolov8n_ppe.pt"):
+    def __init__(self, model_path: str = "yolov8n_ppe_6classes.pt"):
         # Initialize YOLO model
         try:
             self.model = YOLO(model_path)
@@ -33,16 +33,19 @@ class YOLOModel:
             print("⚠️  To enable GPU, ensure NVIDIA Drivers + Docker GPU support are installed.")
             print("="*50 + "\n", flush=True)
     def predict(self, image_bytes: bytes) -> List[Dict[str, Any]]:
+        print(f"DEBUG_MODEL: predict() called with {len(image_bytes)} bytes", flush=True)
         if not self.model:
             raise RuntimeError("Model not loaded")
             
         image = Image.open(io.BytesIO(image_bytes))
+        print(f"DEBUG_MODEL: Image size: {image.size}, Device: {self.device}", flush=True)
         
         # DEBUG: Confirm device usage
         # Note: self.model.device works in Ultralytics YOLOv8
-        print(f"DEBUGGING: Running prediction on device: {self.model.device}", flush=True)
+        # print(f"DEBUGGING: Running prediction on device: {self.model.device}", flush=True)
         
-        results = self.model(image)
+        # Lower confidence threshold and FORCE GPU usage
+        results = self.model(image, conf=0.15, device=self.device, verbose=False)
         
         detections = []
         for result in results:
@@ -59,6 +62,8 @@ class YOLOModel:
                     "class_id": class_id,
                     "class_name": class_name
                 })
+        
+        print(f"DEBUG_MODEL: Found {len(detections)} detections", flush=True)
         return detections
 
     def predict_video_from_file(self, input_path: str, frame_skip: int = 5) -> Dict[str, Any]:

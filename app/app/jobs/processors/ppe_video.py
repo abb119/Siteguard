@@ -5,11 +5,11 @@ from typing import Any, Dict, List, Tuple
 
 import cv2
 
-from app.db.models import JobType
-from app.jobs.processors.base import JobArtifactPayload, JobProcessor, JobResultPayload, ProcessorContext
-from app.jobs.video_utils import probe_video
-from app.services.compliance_service import ComplianceService
-from app.services.model_registry import get_yolo_model
+from app.app.db.models import JobType
+from app.app.jobs.processors.base import JobArtifactPayload, JobProcessor, JobResultPayload, ProcessorContext
+from app.app.jobs.video_utils import probe_video
+from app.app.services.compliance_service import ComplianceService
+from app.app.services.model_registry import get_yolo_model
 
 TARGET_SAMPLE_FPS = 3.0
 MAX_INFERENCE_WIDTH = 960

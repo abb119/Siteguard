@@ -9,12 +9,12 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.rate_limiter import enforce_rate_limit
-from app.db.database import get_db
-from app.db.models import Job, JobStatus, JobType, JobArtifact
-from app.jobs.queue import JOB_QUEUE_MAXSIZE, enqueue_job, queue_has_capacity
-from app.jobs.storage import ensure_job_dir, resolve_artifact_path, stream_upload_to_path
-from app.jobs.video_utils import probe_video
+from app.app.core.rate_limiter import enforce_rate_limit
+from app.app.db.database import get_db
+from app.app.db.models import Job, JobStatus, JobType, JobArtifact
+from app.app.jobs.queue import JOB_QUEUE_MAXSIZE, enqueue_job, queue_has_capacity
+from app.app.jobs.storage import ensure_job_dir, resolve_artifact_path, stream_upload_to_path
+from app.app.jobs.video_utils import probe_video
 
 MAX_VIDEO_MB = int(os.getenv("MAX_VIDEO_MB", "20"))
 MAX_VIDEO_SECONDS = int(os.getenv("MAX_VIDEO_SECONDS", "10"))

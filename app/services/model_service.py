@@ -9,6 +9,7 @@ except (ImportError, OSError):
 
 from typing import List, Dict, Any
 import random
+import os
 
 class YOLOModel:
     def __init__(self, model_path: str = "yolov8n.pt"):
@@ -25,6 +26,14 @@ class YOLOModel:
                     if os.path.exists(path):
                         print(f"Loading model from {path}")
                         self.model = YOLO(path)
+                        
+                        # Move to GPU if available
+                        import torch
+                        if torch.cuda.is_available():
+                            print(f"Moving model to GPU: {torch.cuda.get_device_name(0)}")
+                            self.model.to('cuda')
+                        else:
+                            print("Running on CPU")
                         break
                 except Exception as e:
                     print(f"Failed to load model from {path}: {e}")

@@ -5,9 +5,9 @@ import sys
 # Add the parent directory to sys.path to allow imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from app.db.database import AsyncSessionLocal
-from app.db.models import User
-from app.auth.jwt import get_password_hash
+from app.app.db.database import AsyncSessionLocal
+from app.app.db.models import User
+from app.app.auth.jwt import get_password_hash
 from sqlalchemy import select
 
 async def seed_users():

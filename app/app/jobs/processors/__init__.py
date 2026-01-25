@@ -1,6 +1,6 @@
 from typing import Dict
 
-from app.db.models import JobType
+from app.app.db.models import JobType
 from .base import JobProcessor
 
 PROCESSOR_REGISTRY: Dict[JobType, JobProcessor] = {}

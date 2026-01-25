@@ -21,18 +21,18 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
-from app.auth.jwt import (
+from app.app.auth.jwt import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     Token,
     authenticate_user,
     create_access_token,
     get_current_active_user,
 )
-from app.db.database import get_db
-from app.db.models import Detection, Incident
-from app.services.alert_service import AlertService
-from app.services.compliance_service import ComplianceService
-from app.services.model_registry import get_yolo_model
+from app.app.db.database import get_db
+from app.app.db.models import Detection, Incident
+from app.app.services.alert_service import AlertService
+from app.app.services.compliance_service import ComplianceService
+from app.app.services.model_registry import get_yolo_model
 
 router = APIRouter()
 compliance_service = ComplianceService()
@@ -225,46 +225,58 @@ async def websocket_ppe_stream(websocket: WebSocket):
     try:
         while True:
             message = await websocket.receive_text()
+            print(f"DEBUG_WS: Frame {frame_counter} - Received message length: {len(message)}", flush=True)
+
             try:
                 payload = json.loads(message)
             except json.JSONDecodeError:
+                print("DEBUG_WS: JSON Decode Error", flush=True)
                 await websocket.send_json({"type": "error", "message": "Invalid JSON payload"})
                 continue
 
             image_b64 = payload.get("image")
             if not image_b64:
+                print("DEBUG_WS: No 'image' field in payload", flush=True)
                 await websocket.send_json({"type": "error", "message": "Missing 'image' field"})
                 continue
+
+            # print(f"DEBUG_WS: Image b64 length: {len(image_b64)}", flush=True)
 
             frame_id = payload.get("frame_id")
             if frame_id is None:
                 frame_counter += 1
                 frame_id = frame_counter
             timestamp = payload.get("timestamp")
+            
+            frame = _decode_base64_frame(image_b64)
+            if frame is None:
+                print(f"DEBUG_WS: Failed to decode base64 for frame {frame_id}", flush=True)
+                await websocket.send_json({"type": "error", "message": "Could not decode frame", "frame_id": frame_id})
+                continue
+            
+            # print(f"DEBUG_WS: Frame decoded successfully. Shape: {frame.shape}", flush=True)
+
+            ok, buffer = cv2.imencode(".jpg", frame)
+            if not ok:
+                print(f"DEBUG_WS: Failed to encode frame to buffer for model", flush=True)
+                await websocket.send_json({"type": "error", "message": "Encoding failed", "frame_id": frame_id})
+                continue
+
+            start = time.perf_counter()
+            print(f"DEBUG_WS: Sending to model.predict...", flush=True)
+            detections = await loop.run_in_executor(None, lambda: model.predict(buffer.tobytes()))
+            latency_ms = (time.perf_counter() - start) * 1000.0
+            print(f"DEBUG_WS: Inference complete. Detections: {len(detections)}. Latency: {latency_ms:.2f}ms", flush=True)
+
             capture_w = int(payload.get("capture_width") or 0) or 320
             capture_h = int(payload.get("capture_height") or 0) or 240
             display_w = int(payload.get("display_width") or capture_w)
             display_h = int(payload.get("display_height") or capture_h)
 
-            frame = _decode_base64_frame(image_b64)
-            if frame is None:
-                await websocket.send_json({"type": "error", "message": "Could not decode frame", "frame_id": frame_id})
-                continue
-
-            ok, buffer = cv2.imencode(".jpg", frame)
-            if not ok:
-                await websocket.send_json({"type": "error", "message": "Encoding failed", "frame_id": frame_id})
-                continue
-
-            start = time.perf_counter()
-            detections = await loop.run_in_executor(None, lambda: model.predict(buffer.tobytes()))
-            latency_ms = (time.perf_counter() - start) * 1000.0
-
             scaled_detections = _scale_detections(detections, capture_w, capture_h, display_w, display_h)
             violations = compliance.check_compliance(detections)
 
-            await websocket.send_json(
-                {
+            response = {
                     "type": "frame_result",
                     "frame_id": frame_id,
                     "timestamp": timestamp,
@@ -272,7 +284,8 @@ async def websocket_ppe_stream(websocket: WebSocket):
                     "violations": violations,
                     "latency_ms": round(latency_ms, 2),
                 }
-            )
+            # print(f"DEBUG_WS: Sending response: {json.dumps(response)[:100]}...", flush=True)
+            await websocket.send_json(response)
     except WebSocketDisconnect:
         pass
     except Exception as exc:
@@ -319,3 +332,100 @@ def _scale_detections(detections: List[Dict[str, Any]], src_w: int, src_h: int, 
             }
         )
     return scaled
+
+
+# ============================================
+# Driver Safety WebSocket Endpoint
+# ============================================
+@router.websocket("/ws/driver-stream")
+async def websocket_driver_stream(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time driver safety monitoring.
+    Combines drowsiness detection + phone/distraction detection.
+    """
+    await websocket.accept()
+    await websocket.send_json({"type": "ready"})
+    
+    # Lazy import to avoid circular imports
+    from app.app.services.driver_model_service import get_driver_model
+    
+    driver_model = get_driver_model()
+    loop = asyncio.get_running_loop()
+    frame_counter = 0
+
+    try:
+        while True:
+            message = await websocket.receive_text()
+            
+            try:
+                payload = json.loads(message)
+            except json.JSONDecodeError:
+                await websocket.send_json({"type": "error", "message": "Invalid JSON payload"})
+                continue
+
+            image_b64 = payload.get("image")
+            if not image_b64:
+                await websocket.send_json({"type": "error", "message": "Missing 'image' field"})
+                continue
+
+            frame_id = payload.get("frame_id")
+            if frame_id is None:
+                frame_counter += 1
+                frame_id = frame_counter
+            timestamp = payload.get("timestamp")
+            
+            frame = _decode_base64_frame(image_b64)
+            if frame is None:
+                await websocket.send_json({"type": "error", "message": "Could not decode frame", "frame_id": frame_id})
+                continue
+            
+            # Encode frame as JPEG bytes for model
+            ok, buffer = cv2.imencode(".jpg", frame)
+            if not ok:
+                await websocket.send_json({"type": "error", "message": "Failed to encode frame"})
+                continue
+            
+            image_bytes = buffer.tobytes()
+            
+            # Run driver analysis in threadpool
+            start_time = time.time()
+            driver_results = await loop.run_in_executor(None, driver_model.predict, image_bytes)
+            latency_ms = (time.time() - start_time) * 1000
+            
+            # Scale detections for display
+            capture_w = payload.get("capture_width", 640)
+            capture_h = payload.get("capture_height", 480)
+            display_w = payload.get("display_width", capture_w)
+            display_h = payload.get("display_height", capture_h)
+            
+            scaled_detections = _scale_detections(
+                driver_results.get("detections", []),
+                capture_w, capture_h, display_w, display_h
+            )
+            
+            # Build response
+            response = {
+                "type": "result",
+                "frame_id": frame_id,
+                "timestamp": timestamp,
+                "latency_ms": round(latency_ms, 2),
+                "drowsiness": driver_results.get("drowsiness"),
+                "drowsiness_confidence": driver_results.get("drowsiness_confidence", 0),
+                "distractions": driver_results.get("distractions", []),
+                "is_alert": driver_results.get("is_alert", True),
+                "risk_level": driver_results.get("risk_level", "low"),
+                "detections": scaled_detections,
+            }
+            
+            await websocket.send_json(response)
+
+    except WebSocketDisconnect:
+        print("Driver WebSocket disconnected", flush=True)
+    except Exception as e:
+        print(f"Driver WebSocket error: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        try:
+            await websocket.close()
+        except:
+            pass

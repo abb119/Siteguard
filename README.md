@@ -45,43 +45,51 @@ We don't just ship code; we ship quality. Our CI/CD pipeline ensures that every 
 4.  **Continuous Deployment (CD)**:
     *   If tests pass, a Docker image is built and pushed to the container registry.
 
-## ⚡ Quick Start
+## ⚡ Quick Start (Windows)
+
+We have created an automated script to handle everything for you.
 
 ### Prerequisites
-- Python 3.10+
-- Node.js & npm
-- Git
+- **Python 3.10+** (Added to PATH)
+- **Node.js** (LTS version)
+- **NVIDIA GPU Users**: For Real-Time acceleration, ensure you have:
+  - NVIDIA Drivers installed
+  - CUDA Toolkit 12.1 (Compatible with PyTorch)
 
-### Run Locally (Native)
+### One-Click Run
+The easiest way to start the project (Backend + Frontend + GPU Support) is using our PowerShell script:
 
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/abb119/Siteguard.git
-    cd Siteguard
-    ```
-
-2.  **Setup Backend**
+1.  **Run the script**
     ```powershell
-    # Install dependencies
+    .\run_siteguard.ps1
+    ```
+    *This will automatically: Check prerequisites, install Python/Node dependencies, start the Database, Backend (Port 8000), and Frontend (Port 5173).*
+
+2.  **Access the Application**
+    *   **Frontend**: [http://localhost:5173](http://localhost:5173)
+    *   **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+### Manual Setup (If script fails)
+
+1.  **Backend**
+    ```powershell
+    # Install dependencies (GPU version)
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
     pip install -r requirements.txt
     
-    # Run Migrations (first time only)
+    # Run Migrations
     $env:DATABASE_URL="sqlite+aiosqlite:///./siteguard.db"; python -m alembic upgrade head
 
-    # Start API
-    $env:DATABASE_URL="sqlite+aiosqlite:///./siteguard.db"; python -m uvicorn app.main:app --reload --port 8000
+    # Start API (Note the module path app.app.main)
+    $env:DATABASE_URL="sqlite+aiosqlite:///./siteguard.db"; python -m uvicorn app.app.main:app --reload --port 8000
     ```
 
-3.  **Setup Frontend**
+2.  **Frontend**
     ```powershell
     cd frontend-react
     npm install
     npm run dev
     ```
-
-4.  **Access the Application**
-    *   Frontend: [http://localhost:5173](http://localhost:5173)
-    *   API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ## 📂 Project Structure
 

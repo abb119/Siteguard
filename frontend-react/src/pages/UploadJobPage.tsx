@@ -77,11 +77,10 @@ export const UploadJobPage = () => {
       </div>
 
       <div
-        className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all ${
-          isDragging
+        className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all ${isDragging
             ? "border-emerald-400 bg-emerald-400/10"
             : "border-slate-700 bg-slate-900/60"
-        }`}
+          }`}
         onDragOver={(e) => {
           e.preventDefault();
           setIsDragging(true);
@@ -145,6 +144,16 @@ export const UploadJobPage = () => {
             Muestreamos a 2-5 FPS, generamos eventos + snapshots anotados.
           </p>
         </div>
+      </div>
+
+      <div className="flex justify-center">
+        <button
+          onClick={() => navigate('/lab')}
+          className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-2 transition-colors"
+        >
+          <span className="bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">🚀</span>
+          ¿Quieres análisis instantáneo? Prueba el modo Real-Time Streaming (GPU)
+        </button>
       </div>
 
       <button

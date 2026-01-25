@@ -1,5 +1,5 @@
 from typing import List, Dict, Any
-from app.db.models import Incident
+from app.app.db.models import Incident
 
 class ComplianceService:
     def check_compliance(self, detections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
