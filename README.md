@@ -56,14 +56,22 @@ We have created an automated script to handle everything for you.
   - NVIDIA Drivers installed
   - CUDA Toolkit 12.1 (Compatible with PyTorch)
 
-### One-Click Run
-The easiest way to start the project (Backend + Frontend + GPU Support) is using our PowerShell script:
+### One-Click Launcher
+We have created a master script to handle everything for you with a simple menu.
 
 1.  **Run the script**
     ```powershell
-    .\run_siteguard.ps1
+    .\start_siteguard.ps1
     ```
-    *This will automatically: Check prerequisites, install Python/Node dependencies, start the Database, Backend (Port 8000), and Frontend (Port 5173).*
+    
+2.  **Select a Mode:**
+    *   **Option 1: Public Server Mode**: Starts Backend + ngrok tunnel. Use this to serve the backend for the public Vercel frontend.
+    *   **Option 2: Local Developer Mode**: Starts Backend + Local Frontend. Use this for development.
+
+3.  **Access the Application**
+    *   **Public (Vercel)**: `https://siteguard.vercel.app` (Requires Option 1)
+    *   **Local**: `http://localhost:5173` (Requires Option 2)
+    *   **API Docs**: `http://localhost:8000/docs`
 
 2.  **Access the Application**
     *   **Frontend**: [http://localhost:5173](http://localhost:5173)
