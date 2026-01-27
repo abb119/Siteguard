@@ -22,6 +22,7 @@ export const DriverVideoFeed: React.FC = () => {
     const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const latestResultRef = useRef<DriverResult | null>(null);
     const capturedFrameRef = useRef<ImageData | null>(null);
+    const pendingFramesMap = useRef<Map<number, ImageData>>(new Map()); // Store frames for sync
 
     const [activeMode, setActiveMode] = useState<"webcam" | "file" | null>(null);
     const [fps, setFps] = useState(0);
@@ -100,10 +101,10 @@ export const DriverVideoFeed: React.FC = () => {
 
         let animationFrameId: number;
         let isProcessing = false;
-        let frameSkipCounter = 0;
-        const FRAME_SKIP = 2;
+        let loopCount = 0;
 
         const processLoop = () => {
+            loopCount++;
             if (!videoRef.current || ws.readyState !== WebSocket.OPEN) {
                 animationFrameId = requestAnimationFrame(processLoop);
                 return;
@@ -114,17 +115,24 @@ export const DriverVideoFeed: React.FC = () => {
                 return;
             }
 
+            // LOCK-STEP: Only send next frame after previous response received
             if (isProcessing) {
                 animationFrameId = requestAnimationFrame(processLoop);
                 return;
             }
 
-            frameSkipCounter++;
-            if (frameSkipCounter < FRAME_SKIP) {
+            // BACKPRESSURE: Don't send more if too many pending frames
+            if (pendingFramesMap.current.size > 2) {
+                if (loopCount % 60 === 1) console.log("⏳ Driver: Backpressure wait...");
                 animationFrameId = requestAnimationFrame(processLoop);
                 return;
             }
-            frameSkipCounter = 0;
+
+            // Need valid frame from video
+            if (videoRef.current.readyState < 2) {
+                animationFrameId = requestAnimationFrame(processLoop);
+                return;
+            }
 
             let canvas = offscreenCanvasRef.current;
             if (!canvas) {
@@ -136,12 +144,25 @@ export const DriverVideoFeed: React.FC = () => {
             const ctx = canvas.getContext("2d");
             if (ctx) {
                 ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-                capturedFrameRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const frameData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                // Store this frame with its ID for later retrieval
+                const currentFrameId = ++frameSequence.current;
+                pendingFramesMap.current.set(currentFrameId, frameData);
+
+                // Cleanup old frames (keep last 100)
+                if (pendingFramesMap.current.size > 100) {
+                    const firstKey = pendingFramesMap.current.keys().next().value;
+                    if (firstKey !== undefined) {
+                        pendingFramesMap.current.delete(firstKey);
+                    }
+                }
+
                 const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
                 const base64 = dataUrl.split(",")[1];
                 if (base64) {
                     const payload = {
-                        frame_id: ++frameSequence.current,
+                        frame_id: currentFrameId,
                         timestamp: videoRef.current.currentTime,
                         capture_width: canvas.width,
                         capture_height: canvas.height,
@@ -151,9 +172,13 @@ export const DriverVideoFeed: React.FC = () => {
                     };
                     ws.send(JSON.stringify(payload));
                     isProcessing = true;
+                    // Timeout to recover if response never arrives
                     setTimeout(() => {
-                        if (isProcessing) isProcessing = false;
-                    }, 500);
+                        if (isProcessing) {
+                            console.log(`⏰ Driver: TIMEOUT - Resetting`);
+                            isProcessing = false;
+                        }
+                    }, 5000);
                 }
             }
 
@@ -171,7 +196,21 @@ export const DriverVideoFeed: React.FC = () => {
                 const data: DriverResult = JSON.parse(event.data);
                 if (data.type === "ready") return;
 
-                latestResultRef.current = data;
+                // SYNC: Retrieve the exact frame that matches this result
+                if (pendingFramesMap.current.has(data.frame_id)) {
+                    capturedFrameRef.current = pendingFramesMap.current.get(data.frame_id)!;
+                    latestResultRef.current = data; // Only update results if we have the frame!
+
+                    // Clean up this frame and any older frames (no longer needed)
+                    pendingFramesMap.current.delete(data.frame_id);
+                    for (const key of pendingFramesMap.current.keys()) {
+                        if (key < data.frame_id) pendingFramesMap.current.delete(key);
+                    }
+                } else {
+                    console.warn(`⚠️ Driver: Result ID ${data.frame_id} ignored (Frame not found)`);
+                    return;
+                }
+
                 if (data.latency_ms) setLatencyMs(data.latency_ms);
 
                 // Update driver status

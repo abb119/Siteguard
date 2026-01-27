@@ -2,13 +2,14 @@ import React from "react";
 import { ShieldCheck } from "lucide-react";
 import { VideoFeed } from "../components/VideoFeed";
 import { ServiceLayout } from "../components/ServiceLayout";
-import { Video, History } from "lucide-react";
+import { Video, History, Activity, Truck } from "lucide-react";
 
 export const PPENavItems = [
-    { to: "/services/ppe", label: "Análisis en Vivo", icon: Video },
+    { to: "/services/ppe", label: "Detección EPP", icon: Video },
+    { to: "/services/ppe/ergonomics", label: "Ergonomía", icon: Activity },
+    { to: "/services/ppe/vehicle-control", label: "Control Vehículos", icon: Truck },
     { to: "/services/ppe/history", label: "Historial", icon: History },
 ];
-
 export const PPEServicePage: React.FC = () => {
     return (
         <ServiceLayout

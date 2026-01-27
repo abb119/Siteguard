@@ -464,3 +464,369 @@ async def review_violation(
     await db.commit()
     await db.refresh(violation)
     return violation
+
+
+# ============================================
+# Safe Driving - Front Camera WebSocket
+# ============================================
+@router.websocket("/ws/front-cam-stream")
+async def websocket_front_cam_stream(websocket: WebSocket):
+    """
+    WebSocket endpoint for front camera road safety analysis.
+    Detects: pedestrians, vehicles, traffic lights, signs, cyclists.
+    """
+    await websocket.accept()
+    await websocket.send_json({"type": "ready", "camera": "front"})
+    
+    from app.app.services.road_safety_model_service import get_road_safety_model
+    
+    road_model = get_road_safety_model()
+    loop = asyncio.get_running_loop()
+    frame_counter = 0
+
+    try:
+        while True:
+            message = await websocket.receive_text()
+            
+            try:
+                payload = json.loads(message)
+            except json.JSONDecodeError:
+                await websocket.send_json({"type": "error", "message": "Invalid JSON"})
+                continue
+
+            image_b64 = payload.get("image")
+            if not image_b64:
+                continue
+
+            frame_id = payload.get("frame_id", frame_counter)
+            frame_counter += 1
+            timestamp = payload.get("timestamp")
+            
+            frame = _decode_base64_frame(image_b64)
+            if frame is None:
+                continue
+            
+            ok, buffer = cv2.imencode(".jpg", frame)
+            if not ok:
+                continue
+            
+            image_bytes = buffer.tobytes()
+            capture_w = payload.get("capture_width", 640)
+            
+            start_time = time.time()
+            results = await loop.run_in_executor(
+                None, road_model.analyze_front_camera, image_bytes, capture_w
+            )
+            latency_ms = (time.time() - start_time) * 1000
+            
+            # Scale detections
+            capture_h = payload.get("capture_height", 480)
+            display_w = payload.get("display_width", capture_w)
+            display_h = payload.get("display_height", capture_h)
+            
+            scaled_detections = _scale_detections(
+                results.get("detections", []),
+                capture_w, capture_h, display_w, display_h
+            )
+            
+            response = {
+                "type": "result",
+                "camera": "front",
+                "frame_id": frame_id,
+                "timestamp": timestamp,
+                "latency_ms": round(latency_ms, 2),
+                "detections": scaled_detections,
+                "alerts": results.get("alerts", []),
+                "risk_level": results.get("risk_level", "low"),
+                "pedestrians_count": results.get("pedestrians_count", 0),
+                "vehicles_ahead": results.get("vehicles_ahead", []),
+                "traffic_light": results.get("traffic_light"),
+            }
+            
+            await websocket.send_json(response)
+
+    except WebSocketDisconnect:
+        print("Front camera WebSocket disconnected", flush=True)
+    except Exception as e:
+        print(f"Front camera WebSocket error: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+
+
+# ============================================
+# Safe Driving - Rear Camera WebSocket
+# ============================================
+@router.websocket("/ws/rear-cam-stream")
+async def websocket_rear_cam_stream(websocket: WebSocket):
+    """
+    WebSocket endpoint for rear camera analysis.
+    Detects approaching vehicles and determines if maneuvers are safe.
+    """
+    await websocket.accept()
+    await websocket.send_json({"type": "ready", "camera": "rear"})
+    
+    from app.app.services.road_safety_model_service import get_road_safety_model
+    
+    road_model = get_road_safety_model()
+    loop = asyncio.get_running_loop()
+    frame_counter = 0
+
+    try:
+        while True:
+            message = await websocket.receive_text()
+            
+            try:
+                payload = json.loads(message)
+            except json.JSONDecodeError:
+                await websocket.send_json({"type": "error", "message": "Invalid JSON"})
+                continue
+
+            image_b64 = payload.get("image")
+            if not image_b64:
+                continue
+
+            frame_id = payload.get("frame_id", frame_counter)
+            frame_counter += 1
+            timestamp = payload.get("timestamp")
+            
+            frame = _decode_base64_frame(image_b64)
+            if frame is None:
+                continue
+            
+            ok, buffer = cv2.imencode(".jpg", frame)
+            if not ok:
+                continue
+            
+            image_bytes = buffer.tobytes()
+            capture_w = payload.get("capture_width", 640)
+            
+            start_time = time.time()
+            results = await loop.run_in_executor(
+                None, road_model.analyze_rear_camera, image_bytes, capture_w
+            )
+            latency_ms = (time.time() - start_time) * 1000
+            
+            # Scale detections
+            capture_h = payload.get("capture_height", 480)
+            display_w = payload.get("display_width", capture_w)
+            display_h = payload.get("display_height", capture_h)
+            
+            scaled_detections = _scale_detections(
+                results.get("detections", []),
+                capture_w, capture_h, display_w, display_h
+            )
+            
+            response = {
+                "type": "result",
+                "camera": "rear",
+                "frame_id": frame_id,
+                "timestamp": timestamp,
+                "latency_ms": round(latency_ms, 2),
+                "detections": scaled_detections,
+                "alerts": results.get("alerts", []),
+                "risk_level": results.get("risk_level", "low"),
+                "safe_to_maneuver": results.get("safe_to_maneuver", True),
+                "closest_vehicle_distance": results.get("closest_vehicle_distance"),
+                "approaching_vehicles": results.get("approaching_vehicles", []),
+                "approach_speed_kmh": results.get("approach_speed_kmh", 0),
+                "approach_status": results.get("approach_status", "stable"),
+            }
+            
+            await websocket.send_json(response)
+
+    except WebSocketDisconnect:
+        print("Rear camera WebSocket disconnected", flush=True)
+    except Exception as e:
+        print(f"Rear camera WebSocket error: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+
+
+# ============================================
+# ERGONOMICS WEBSOCKET ENDPOINT
+# ============================================
+from app.app.services.ergonomics_model_service import get_ergonomics_model
+
+
+def _scale_ergonomics_detections(detections, src_w: int, src_h: int, dst_w: int, dst_h: int):
+    """Scale ergonomics detections including keypoints."""
+    if src_w <= 0 or src_h <= 0:
+        src_w, src_h = dst_w, dst_h
+    scale_x = dst_w / max(src_w, 1)
+    scale_y = dst_h / max(src_h, 1)
+    scaled = []
+    for det in detections or []:
+        box = det.get("box", [0, 0, 0, 0])
+        scaled_box = [
+            float(box[0]) * scale_x,
+            float(box[1]) * scale_y,
+            float(box[2]) * scale_x,
+            float(box[3]) * scale_y,
+        ]
+        
+        # Scale keypoints as well
+        keypoints = det.get("keypoints", [])
+        scaled_keypoints = []
+        for kp in keypoints:
+            if len(kp) >= 2:
+                scaled_kp = [
+                    float(kp[0]) * scale_x,
+                    float(kp[1]) * scale_y,
+                    float(kp[2]) if len(kp) > 2 else 1.0  # confidence
+                ]
+                scaled_keypoints.append(scaled_kp)
+            else:
+                scaled_keypoints.append(kp)
+        
+        scaled.append({
+            "box": scaled_box,
+            "keypoints": scaled_keypoints,
+            "posture_score": det.get("posture_score", 100),
+            "issues": det.get("issues", []),
+        })
+    return scaled
+
+@router.websocket("/ws/ergonomics-stream")
+async def websocket_ergonomics_stream(websocket: WebSocket):
+    """WebSocket endpoint for ergonomics (posture) analysis."""
+    await websocket.accept()
+    ergo_model = get_ergonomics_model()
+    loop = asyncio.get_event_loop()
+    
+    try:
+        await websocket.send_json({"type": "ready", "message": "Ergonomics stream ready"})
+        
+        while True:
+            message = await websocket.receive_text()
+            payload = json.loads(message)
+            
+            image_b64 = payload.get("image")
+            frame_id = payload.get("frame_id", 0)
+            timestamp = payload.get("timestamp", 0)
+            
+            if not image_b64:
+                continue
+            
+            frame = _decode_base64_frame(image_b64)
+            if frame is None:
+                continue
+            
+            ok, buffer = cv2.imencode(".jpg", frame)
+            if not ok:
+                continue
+            
+            image_bytes = buffer.tobytes()
+            capture_w = payload.get("capture_width", 640)
+            
+            start_time = time.time()
+            results = await loop.run_in_executor(
+                None, ergo_model.analyze_frame, image_bytes, capture_w
+            )
+            latency_ms = (time.time() - start_time) * 1000
+            
+            # Scale detections
+            capture_h = payload.get("capture_height", 480)
+            display_w = payload.get("display_width", capture_w)
+            display_h = payload.get("display_height", capture_h)
+            
+            scaled_detections = _scale_ergonomics_detections(
+                results.get("detections", []),
+                capture_w, capture_h, display_w, display_h
+            )
+            
+            response = {
+                "type": "result",
+                "frame_id": frame_id,
+                "timestamp": timestamp,
+                "latency_ms": round(latency_ms, 2),
+                "detections": scaled_detections,
+                "people_count": results.get("people_count", 0),
+                "posture_issues": results.get("posture_issues", []),
+                "avg_posture_score": results.get("avg_posture_score", 100),
+                "risk_level": results.get("risk_level", "low"),
+            }
+            
+            await websocket.send_json(response)
+
+    except WebSocketDisconnect:
+        print("Ergonomics WebSocket disconnected", flush=True)
+    except Exception as e:
+        print(f"Ergonomics WebSocket error: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+
+
+# ============================================
+# VEHICLE CONTROL WEBSOCKET ENDPOINT
+# ============================================
+from app.app.services.vehicle_control_model_service import get_vehicle_control_model
+
+@router.websocket("/ws/vehicle-control-stream")
+async def websocket_vehicle_control_stream(websocket: WebSocket):
+    """WebSocket endpoint for vehicle-person proximity detection."""
+    await websocket.accept()
+    vehicle_model = get_vehicle_control_model()
+    loop = asyncio.get_event_loop()
+    
+    try:
+        await websocket.send_json({"type": "ready", "message": "Vehicle control stream ready"})
+        
+        while True:
+            message = await websocket.receive_text()
+            payload = json.loads(message)
+            
+            image_b64 = payload.get("image")
+            frame_id = payload.get("frame_id", 0)
+            timestamp = payload.get("timestamp", 0)
+            
+            if not image_b64:
+                continue
+            
+            frame = _decode_base64_frame(image_b64)
+            if frame is None:
+                continue
+            
+            ok, buffer = cv2.imencode(".jpg", frame)
+            if not ok:
+                continue
+            
+            image_bytes = buffer.tobytes()
+            capture_w = payload.get("capture_width", 640)
+            
+            start_time = time.time()
+            results = await loop.run_in_executor(
+                None, vehicle_model.analyze_frame, image_bytes, capture_w
+            )
+            latency_ms = (time.time() - start_time) * 1000
+            
+            # Scale detections
+            capture_h = payload.get("capture_height", 480)
+            display_w = payload.get("display_width", capture_w)
+            display_h = payload.get("display_height", capture_h)
+            
+            scaled_detections = _scale_detections(
+                results.get("detections", []),
+                capture_w, capture_h, display_w, display_h
+            )
+            
+            response = {
+                "type": "result",
+                "frame_id": frame_id,
+                "timestamp": timestamp,
+                "latency_ms": round(latency_ms, 2),
+                "detections": scaled_detections,
+                "people_count": results.get("people_count", 0),
+                "vehicles_count": results.get("vehicles_count", 0),
+                "proximity_alerts": results.get("proximity_alerts", []),
+                "closest_distance": results.get("closest_distance"),
+                "risk_level": results.get("risk_level", "low"),
+            }
+            
+            await websocket.send_json(response)
+
+    except WebSocketDisconnect:
+        print("Vehicle Control WebSocket disconnected", flush=True)
+    except Exception as e:
+        print(f"Vehicle Control WebSocket error: {e}", flush=True)
+        import traceback
+        traceback.print_exc()

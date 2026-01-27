@@ -93,3 +93,5 @@ confusion_matrix.png
 report.md
 siteguard.db
 error.log
+
+app/app/static/violations/

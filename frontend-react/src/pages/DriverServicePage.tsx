@@ -1,16 +1,17 @@
 import React from "react";
-import { Truck, Video, AlertTriangle, Settings } from "lucide-react";
+import { Truck, Video, AlertTriangle, Settings, Car } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
 import { DriverVideoFeed } from "../components/DriverVideoFeed";
 
 export const DriverServicePage: React.FC = () => {
     return (
         <ServiceLayout
-            serviceName="Conducción Segura"
+            serviceName="Sistema ADAS"
             serviceIcon={<Truck className="text-orange-400" size={24} />}
             accentColor="bg-orange-500/20"
             navItems={[
-                { to: "/services/driver", label: "Monitor en Vivo", icon: Video },
+                { to: "/services/driver", label: "Monitor Conductor", icon: Video },
+                { to: "/services/driver/safe-driving", label: "Conducción Segura", icon: Car },
                 { to: "/services/driver/alerts", label: "Alertas", icon: AlertTriangle },
                 { to: "/services/driver/settings", label: "Configuración", icon: Settings },
             ]}
