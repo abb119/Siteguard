@@ -29,7 +29,9 @@ from app.app.auth.jwt import (
     get_current_active_user,
 )
 from app.app.db.database import get_db
-from app.app.db.models import Detection, Incident
+from app.app.db.models import Detection, Incident, Violation
+from app.app.schemas import ViolationOut, ViolationReview
+from sqlalchemy import select, desc
 from app.app.services.alert_service import AlertService
 from app.app.services.compliance_service import ComplianceService
 from app.app.services.model_registry import get_yolo_model
@@ -214,7 +216,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 @router.websocket("/ws/ppe-stream")
-async def websocket_ppe_stream(websocket: WebSocket):
+async def websocket_ppe_stream(websocket: WebSocket, db: AsyncSession = Depends(get_db)):
     await websocket.accept()
     await websocket.send_json({"type": "ready"})
     model = get_yolo_model()
@@ -275,6 +277,8 @@ async def websocket_ppe_stream(websocket: WebSocket):
 
             scaled_detections = _scale_detections(detections, capture_w, capture_h, display_w, display_h)
             violations = compliance.check_compliance(detections)
+            if violations:
+                await compliance.save_violations(violations, frame, db)
 
             response = {
                     "type": "frame_result",
@@ -429,3 +433,34 @@ async def websocket_driver_stream(websocket: WebSocket):
             await websocket.close()
         except:
             pass
+
+@router.get("/violations", response_model=List[ViolationOut])
+async def get_violations(
+    skip: int = 0, 
+    limit: int = 50, 
+    db: AsyncSession = Depends(get_db)
+):
+    query = select(Violation).order_by(desc(Violation.timestamp)).offset(skip).limit(limit)
+    result = await db.execute(query)
+    return result.scalars().all()
+
+@router.post("/violations/{violation_id}/review", response_model=ViolationOut)
+async def review_violation(
+    violation_id: int, 
+    review: ViolationReview, 
+    db: AsyncSession = Depends(get_db)
+):
+    query = select(Violation).where(Violation.id == violation_id)
+    result = await db.execute(query)
+    violation = result.scalar_one_or_none()
+    
+    if not violation:
+        raise HTTPException(status_code=404, detail="Violation not found")
+    
+    violation.is_reviewed = True
+    violation.is_false_positive = review.is_false_positive
+    violation.reviewer_notes = review.notes
+    
+    await db.commit()
+    await db.refresh(violation)
+    return violation

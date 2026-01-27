@@ -10,13 +10,35 @@ import torch
 
 class YOLOModel:
     def __init__(self, model_path: str = "yolov8n_ppe_6classes.pt"):
-        # Initialize YOLO model
-        try:
-            self.model = YOLO(model_path)
-            print(f"✅ Model loaded successfully: {model_path}")
-        except Exception as e:
-            print(f"CRITICAL ERROR: Failed to load YOLO model: {e}")
-            raise RuntimeError(f"Could not load YOLO model: {e}")
+        # Get project root directory (go up from app/app/services/ to project root)
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        
+        # Model paths to try in priority order
+        model_paths_to_try = [
+            os.path.join(project_root, "siteguard_model", "yolov8n_ppe", "weights", "best.pt"),  # New trained model
+            model_path,  # Original model path
+            os.path.join(project_root, "yolov8n_ppe_6classes.pt"),  # Absolute fallback
+        ]
+        
+        print(f"DEBUG: Project root = {project_root}")
+        print(f"DEBUG: Model paths to try: {model_paths_to_try}")
+        
+        # Try each model path
+        self.model = None
+        for path in model_paths_to_try:
+            if os.path.exists(path):
+                try:
+                    self.model = YOLO(path)
+                    print(f"✅ Model loaded successfully: {path}")
+                    break
+                except Exception as e:
+                    print(f"⚠️ Failed to load model from {path}: {e}")
+                    continue
+            else:
+                print(f"DEBUG: Model not found at {path}")
+        
+        if self.model is None:
+            raise RuntimeError(f"Could not load YOLO model from any path: {model_paths_to_try}")
 
         # GPU Check
         if torch.cuda.is_available():
@@ -33,19 +55,13 @@ class YOLOModel:
             print("⚠️  To enable GPU, ensure NVIDIA Drivers + Docker GPU support are installed.")
             print("="*50 + "\n", flush=True)
     def predict(self, image_bytes: bytes) -> List[Dict[str, Any]]:
-        print(f"DEBUG_MODEL: predict() called with {len(image_bytes)} bytes", flush=True)
         if not self.model:
             raise RuntimeError("Model not loaded")
             
         image = Image.open(io.BytesIO(image_bytes))
-        print(f"DEBUG_MODEL: Image size: {image.size}, Device: {self.device}", flush=True)
         
-        # DEBUG: Confirm device usage
-        # Note: self.model.device works in Ultralytics YOLOv8
-        # print(f"DEBUGGING: Running prediction on device: {self.model.device}", flush=True)
-        
-        # Lower confidence threshold and FORCE GPU usage
-        results = self.model(image, conf=0.15, device=self.device, verbose=False)
+        # Use full resolution for best quality - RTX 2070 can handle 640 easily
+        results = self.model(image, conf=0.20, device=self.device, verbose=False, imgsz=640)
         
         detections = []
         for result in results:

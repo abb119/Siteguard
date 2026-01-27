@@ -12,19 +12,23 @@ class ComplianceService:
         # New Logic: The model directly detects violations (no-helmet, no-vest)
         # Classes: helmet, no-helmet, vest, no-vest
         
+        # Define class name variants for different PPE models
+        no_helmet_variants = {'no-helmet', 'without_helmet', 'NO-Hardhat', 'no_helmet'}
+        no_vest_variants = {'no-vest', 'without_vest', 'NO-Safety Vest', 'no_vest'}
+        
         for det in detections:
             name = det['class_name']
             box = det['box']
             conf = det['confidence']
             
-            if name == 'no-helmet':
+            if name in no_helmet_variants:
                 violations.append({
                     "violation_type": "NO_HELMET",
                     "severity": "HIGH",
                     "details": {"box": box, "confidence": conf}
                 })
             
-            if name == 'no-vest':
+            if name in no_vest_variants:
                 violations.append({
                     "violation_type": "NO_VEST",
                     "severity": "MEDIUM",

@@ -76,17 +76,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SiteGuard API", version="0.1.0", lifespan=lifespan)
 
-frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
-allowed_origins = {
-    frontend_origin.rstrip("/"),
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-}
-allowed_origins = [origin for origin in allowed_origins if origin]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],  # Allow Vercel and other origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

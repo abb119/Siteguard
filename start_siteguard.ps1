@@ -15,6 +15,13 @@ function Show-Header {
     Write-Host ""
 }
 
+function Kill-Processes {
+    Write-Host "Cleaning up old processes..." -ForegroundColor Gray
+    Stop-Process -Name "ngrok" -ErrorAction SilentlyContinue
+    Stop-Process -Name "uvicorn" -ErrorAction SilentlyContinue
+    Stop-Process -Name "python" -ErrorAction SilentlyContinue
+}
+
 function Start-Backend {
     param([string]$Title = "SiteGuard Backend")
     Write-Host "Starting Backend..." -ForegroundColor Yellow
@@ -53,6 +60,7 @@ while ($true) {
     switch ($selection) {
         "1" {
             Show-Header
+            Kill-Processes
             Write-Host "Launching Public Server Mode..." -ForegroundColor Green
             Start-Backend
             Start-Sleep -Seconds 2
@@ -67,6 +75,7 @@ while ($true) {
         }
         "2" {
             Show-Header
+            Kill-Processes
             Write-Host "Launching Local Developer Mode..." -ForegroundColor Green
             Start-Backend
             Start-Sleep -Seconds 2

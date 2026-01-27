@@ -10,7 +10,7 @@ type FrameResult = {
   latency_ms?: number;
 };
 
-export const VideoFeed: React.FC = () => {
+export const VideoFeed: React.FC<{ initialMode?: "webcam" | "file" }> = ({ initialMode }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -18,8 +18,9 @@ export const VideoFeed: React.FC = () => {
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const latestResultRef = useRef<FrameResult | null>(null);
   const capturedFrameRef = useRef<ImageData | null>(null); // Store analyzed frame for sync display
+  const pendingFramesMap = useRef<Map<number, ImageData>>(new Map()); // Store all frames sent for analysis
 
-  const [activeMode, setActiveMode] = useState<"webcam" | "file" | null>(null);
+  const [activeMode, setActiveMode] = useState<"webcam" | "file" | null>(initialMode || null);
   const [fps, setFps] = useState(0);
   const [latencyMs, setLatencyMs] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -103,16 +104,21 @@ export const VideoFeed: React.FC = () => {
 
     let animationFrameId: number;
     let isProcessing = false;
-    let frameSkipCounter = 0;
-    const FRAME_SKIP = 2; // Process every Nth frame (2 = every other frame)
+    let loopCount = 0;
+
+    console.log("🚀 FREEZE-FRAME MODE v2 - VideoFeed initialized");
 
     const processLoop = () => {
+      loopCount++;
+      if (loopCount % 60 === 1) {
+        console.log(`📊 STATUS: Processing=${isProcessing}, MapSize=${pendingFramesMap.current.size}, LastID=${frameSequence.current}, Latency=${latencyMs}ms`);
+      }
       if (!videoRef.current || ws.readyState !== WebSocket.OPEN) {
         animationFrameId = requestAnimationFrame(processLoop);
         return;
       }
 
-      if (isPaused || videoRef.current.paused || videoRef.current.ended) {
+      if (isPaused || videoRef.current.ended) {
         animationFrameId = requestAnimationFrame(processLoop);
         return;
       }
@@ -123,13 +129,19 @@ export const VideoFeed: React.FC = () => {
         return;
       }
 
-      // FRAME SKIP: Only process every Nth frame for sync
-      frameSkipCounter++;
-      if (frameSkipCounter < FRAME_SKIP) {
+      // BACKPRESSURE: If we have pending frames (even if isProcessing is false due to timeout),
+      // DO NOT send more. Wait for the queue to drain.
+      if (pendingFramesMap.current.size > 2) {
+        if (loopCount % 60 === 1) console.log("⏳ Backpressure: Waiting for pending frames to clear...");
         animationFrameId = requestAnimationFrame(processLoop);
         return;
       }
-      frameSkipCounter = 0;
+
+      // Need valid frame from video (not paused, not ended, ready)
+      if (videoRef.current.readyState < 2 || videoRef.current.paused || videoRef.current.ended) {
+        animationFrameId = requestAnimationFrame(processLoop);
+        return;
+      }
 
       let canvas = offscreenCanvasRef.current;
       if (!canvas) {
@@ -140,14 +152,28 @@ export const VideoFeed: React.FC = () => {
       }
       const ctx = canvas.getContext("2d");
       if (ctx) {
+        // Capture the current frame
         ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        // Save captured frame for synchronized display
-        capturedFrameRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
+        const frameData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        // Store this frame with its ID for later retrieval
+        const currentFrameId = ++frameSequence.current;
+        pendingFramesMap.current.set(currentFrameId, frameData);
+
+        // Clean up old frames (Keep last 100 to handle latency spikes)
+        if (pendingFramesMap.current.size > 100) {
+          const firstKey = pendingFramesMap.current.keys().next().value;
+          if (firstKey !== undefined) {
+            pendingFramesMap.current.delete(firstKey);
+            console.log("⚠️ MAP FULL - Dropped oldest frame to prevent overflow");
+          }
+        }
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
         const base64 = dataUrl.split(",")[1];
         if (base64) {
           const payload = {
-            frame_id: ++frameSequence.current,
+            frame_id: currentFrameId,
             timestamp: videoRef.current.currentTime,
             capture_width: canvas.width,
             capture_height: canvas.height,
@@ -157,13 +183,15 @@ export const VideoFeed: React.FC = () => {
           };
           ws.send(JSON.stringify(payload));
           isProcessing = true;
-          // Reduced timeout - if no response in 500ms, allow next frame
-          // This prevents complete freeze if a frame is lost
+          // console.log(`📤 Sent frame ${currentFrameId}`); // Commented out to reduce noise
+
+          // Timeout to recover if response never arrives
           setTimeout(() => {
             if (isProcessing) {
+              console.log(`⏰ TIMEOUT - Resetting isProcessing (MapSize: ${pendingFramesMap.current.size})`);
               isProcessing = false;
             }
-          }, 500);
+          }, 5000); // Increased timeout to 5s to prevent flooding
         }
       }
 
@@ -181,7 +209,24 @@ export const VideoFeed: React.FC = () => {
       try {
         const payload = JSON.parse(event.data) as { type: string } & FrameResult & { message?: string };
         if (payload.type === "frame_result") {
-          latestResultRef.current = payload;
+          // SYNC: Retrieve the exact frame that matches this result
+          if (pendingFramesMap.current.has(payload.frame_id)) {
+            capturedFrameRef.current = pendingFramesMap.current.get(payload.frame_id)!;
+            latestResultRef.current = payload; // Only update results if we have the frame!
+
+            // Clean up this frame and any older frames (no longer needed)
+            pendingFramesMap.current.delete(payload.frame_id);
+            for (const key of pendingFramesMap.current.keys()) {
+              if (key < payload.frame_id) pendingFramesMap.current.delete(key);
+            }
+          } else {
+            console.warn(`⚠️ DROP: Result ID ${payload.frame_id} ignored (Frame not found in Map)`);
+            // Do NOT update latestResultRef here - checking for frame is critical for sync
+            return;
+          }
+
+          // Debug log
+          // console.log(`📥 Received result for frame ${payload.frame_id}`);
           if (typeof payload.latency_ms === "number") {
             setLatencyMs(payload.latency_ms);
           }
@@ -242,7 +287,7 @@ export const VideoFeed: React.FC = () => {
         return;
       }
 
-      // Draw the ANALYZED frame (not live video) for perfect sync
+      // FREEZE-FRAME MODE: Only show analyzed frames for perfect sync
       if (capturedFrameRef.current) {
         // Scale captured frame to display canvas size
         const tempCanvas = document.createElement("canvas");
@@ -259,18 +304,14 @@ export const VideoFeed: React.FC = () => {
             displayCanvasRef.current.height
           );
         }
-      } else if (videoRef.current && videoRef.current.readyState >= 2) {
-        // Fallback: show live video if no captured frame yet
-        ctx.drawImage(
-          videoRef.current,
-          0,
-          0,
-          displayCanvasRef.current.width,
-          displayCanvasRef.current.height
-        );
       } else {
+        // Show loading screen until first analyzed frame arrives
         ctx.fillStyle = "#020617";
         ctx.fillRect(0, 0, displayCanvasRef.current.width, displayCanvasRef.current.height);
+        ctx.fillStyle = "#64748b";
+        ctx.font = "16px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Analizando...", displayCanvasRef.current.width / 2, displayCanvasRef.current.height / 2);
       }
 
       const result = latestResultRef.current;

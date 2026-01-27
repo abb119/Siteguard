@@ -2,7 +2,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@db:5432/siteguard")
+# Default to SQLite for local development, easy setup
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./siteguard.db")
 
 engine = create_async_engine(DATABASE_URL, echo=True)
 

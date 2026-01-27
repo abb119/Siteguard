@@ -14,11 +14,17 @@ import os
 class YOLOModel:
     def __init__(self, model_path: str = "yolov8n.pt"):
         if HAS_YOLO:
+            # Get project root directory (go up from app/services/ to project root)
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            
             # Try to load trained model first, then fallback to pretrained
             model_paths_to_try = [
-                "siteguard_model/yolov8n_ppe/weights/best.pt",  # Trained model
+                os.path.join(project_root, "siteguard_model/yolov8n_ppe/weights/best.pt"),  # Trained model
                 model_path,  # Default pretrained model
             ]
+            
+            print(f"DEBUG: Project root = {project_root}")
+            print(f"DEBUG: Looking for model at {model_paths_to_try[0]}")
             
             self.model = None
             for path in model_paths_to_try:

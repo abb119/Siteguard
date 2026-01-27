@@ -79,3 +79,17 @@ class JobArtifact(Base):
     metadata_json = Column(JSON, nullable=True)
 
     job = relationship("Job", back_populates="artifacts")
+
+
+class Violation(Base):
+    __tablename__ = "violations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    violation_type = Column(String, nullable=False)  # NO_HELMET, NO_VEST
+    confidence = Column(Float, nullable=False)
+    image_path = Column(String, nullable=True)  # Path to saved image file
+    is_reviewed = Column(Boolean, default=False)
+    is_false_positive = Column(Boolean, default=False)
+    reviewer_notes = Column(String, nullable=True)
+
