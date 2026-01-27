@@ -46,7 +46,7 @@ const StatsPanel: React.FC<{ latestResultRef: React.MutableRefObject<FrameResult
       });
 
       // Calculate simple compliance score (100 - (violations/people * 50)) or similar
-      const personCount = counts["person"] || 1;
+
       const calculatedScore = Math.max(0, 100 - (violations * 20)); // Arbitrary penalty
 
       setStats({ counts, compliance: calculatedScore });
