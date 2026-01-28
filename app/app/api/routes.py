@@ -3,7 +3,7 @@ import base64
 import json
 import time
 from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import cv2
 import numpy as np
@@ -218,6 +218,7 @@ async def websocket_endpoint(websocket: WebSocket):
 @router.websocket("/ws/ppe-stream")
 async def websocket_ppe_stream(websocket: WebSocket, db: AsyncSession = Depends(get_db)):
     await websocket.accept()
+    session_id = websocket.query_params.get("session_id")
     await websocket.send_json({"type": "ready"})
     model = get_yolo_model()
     compliance = ComplianceService()
@@ -278,7 +279,7 @@ async def websocket_ppe_stream(websocket: WebSocket, db: AsyncSession = Depends(
             scaled_detections = _scale_detections(detections, capture_w, capture_h, display_w, display_h)
             violations = compliance.check_compliance(detections)
             if violations:
-                await compliance.save_violations(violations, frame, db)
+                await compliance.save_violations(violations, frame, db, session_id=session_id)
 
             response = {
                     "type": "frame_result",
@@ -438,9 +439,14 @@ async def websocket_driver_stream(websocket: WebSocket):
 async def get_violations(
     skip: int = 0, 
     limit: int = 50, 
+    session_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
-    query = select(Violation).order_by(desc(Violation.timestamp)).offset(skip).limit(limit)
+    query = select(Violation)
+    if session_id:
+        query = query.filter(Violation.session_id == session_id)
+    
+    query = query.order_by(desc(Violation.timestamp)).offset(skip).limit(limit)
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -718,10 +724,12 @@ async def websocket_ergonomics_stream(websocket: WebSocket):
             image_bytes = buffer.tobytes()
             capture_w = payload.get("capture_width", 640)
             
+            # print("DEBUG_ERGO: Analyzing frame...", flush=True)
             start_time = time.time()
             results = await loop.run_in_executor(
                 None, ergo_model.analyze_frame, image_bytes, capture_w
             )
+            # print(f"DEBUG_ERGO: Result keys: {results.keys()}", flush=True)
             latency_ms = (time.time() - start_time) * 1000
             
             # Scale detections
@@ -830,3 +838,6 @@ async def websocket_vehicle_control_stream(websocket: WebSocket):
         print(f"Vehicle Control WebSocket error: {e}", flush=True)
         import traceback
         traceback.print_exc()
+
+
+

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Check, ShieldAlert, Calendar } from "lucide-react";
+import { getSessionId } from "../utils/session";
 
 type Violation = {
     id: number;
@@ -19,7 +20,7 @@ export const AdminDashboard: React.FC = () => {
 
     const fetchViolations = async () => {
         try {
-            const res = await fetch("http://localhost:8000/violations?limit=100");
+            const res = await fetch(`http://localhost:8000/violations?limit=100&session_id=${getSessionId()}`);
             if (res.ok) {
                 const data = await res.json();
                 setViolations(data);

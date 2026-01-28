@@ -3,7 +3,7 @@ import { ShieldCheck, Activity, Camera, Upload, AlertTriangle, Eye, EyeOff } fro
 import { ServiceLayout } from "../components/ServiceLayout";
 import { PPENavItems } from "./PPEServicePage";
 
-const WS_URL = import.meta.env.VITE_WS_URL || "ws://127.0.0.1:8000";
+const WS_URL = (import.meta.env.VITE_WS_URL || "ws://127.0.0.1:8000").replace("/ws/ppe-stream", "");
 
 type PostureIssue = {
     type: string;

@@ -89,6 +89,7 @@ class Violation(Base):
     violation_type = Column(String, nullable=False)  # NO_HELMET, NO_VEST
     confidence = Column(Float, nullable=False)
     image_path = Column(String, nullable=True)  # Path to saved image file
+    session_id = Column(String, index=True, nullable=True)  # Frontend Session ID
     is_reviewed = Column(Boolean, default=False)
     is_false_positive = Column(Boolean, default=False)
     reviewer_notes = Column(String, nullable=True)

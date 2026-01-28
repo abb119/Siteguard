@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Camera, Video, StopCircle, Upload, Play, Pause, AlertTriangle } from "lucide-react";
 import { clsx } from "clsx";
+import { getSessionId } from "../utils/session";
 
 type FrameResult = {
   frame_id: number;
@@ -183,9 +184,8 @@ export const VideoFeed: React.FC<{ initialMode?: "webcam" | "file" }> = ({ initi
   useEffect(() => {
     if (!activeMode) return;
 
-    const wsUrl =
-      import.meta.env.VITE_WS_URL ||
-      "ws://127.0.0.1:8000/ws/ppe-stream";
+    const baseUrl = import.meta.env.VITE_WS_URL || "ws://127.0.0.1:8000/ws/ppe-stream";
+    const wsUrl = `${baseUrl}?session_id=${getSessionId()}`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 

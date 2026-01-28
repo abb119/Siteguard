@@ -47,7 +47,7 @@ class ComplianceService:
 
         return violations
 
-    async def save_violations(self, violations: List[Dict[str, Any]], frame: Any, db: AsyncSession):
+    async def save_violations(self, violations: List[Dict[str, Any]], frame: Any, db: AsyncSession, session_id: str = None):
         """
         Saves violations to DB and images to disk asynchronously.
         Logic: EVENT-BASED. Only save at the START of an incident or if significant time passes.
@@ -135,6 +135,7 @@ class ComplianceService:
                 violation_type=v['violation_type'],
                 confidence=v['details']['confidence'],
                 image_path=f"/static/violations/{filename}",
+                session_id=session_id,
                 is_reviewed=False
             )
             db.add(db_violation)
