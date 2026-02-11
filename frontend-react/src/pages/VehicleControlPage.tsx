@@ -203,9 +203,9 @@ export const VehicleControlPage: React.FC = () => {
             accentColor="bg-cyan-500/20"
             navItems={PPENavItems}
         >
-            <div className="p-8">
+            <div className="p-4 md:p-8">
                 <div className="mb-6">
-                    <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
+                    <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-3">
                         <Truck className="text-orange-400" />
                         Control de Vehículos
                     </h1>
@@ -270,11 +270,11 @@ export const VehicleControlPage: React.FC = () => {
 
                         {/* Risk Level */}
                         <div className={`rounded-xl p-6 text-center ${result?.risk_level === "high" ? "bg-red-500/20 border border-red-500/50" :
-                                result?.risk_level === "medium" ? "bg-orange-500/20 border border-orange-500/50" :
-                                    "bg-green-500/20 border border-green-500/50"
+                            result?.risk_level === "medium" ? "bg-orange-500/20 border border-orange-500/50" :
+                                "bg-green-500/20 border border-green-500/50"
                             }`}>
                             <div className={`text-2xl font-bold ${result?.risk_level === "high" ? "text-red-400" :
-                                    result?.risk_level === "medium" ? "text-orange-400" : "text-green-400"
+                                result?.risk_level === "medium" ? "text-orange-400" : "text-green-400"
                                 }`}>
                                 {result?.risk_level === "high" ? "⚠️ PELIGRO" :
                                     result?.risk_level === "medium" ? "⚡ PRECAUCIÓN" : "✓ SEGURO"}
@@ -288,8 +288,8 @@ export const VehicleControlPage: React.FC = () => {
                                 <div className="space-y-2">
                                     {result.proximity_alerts.map((alert, i) => (
                                         <div key={i} className={`rounded-lg px-3 py-2 text-sm ${alert.level === "danger"
-                                                ? "bg-red-500/20 border border-red-500/50 text-red-400 animate-pulse"
-                                                : "bg-orange-500/20 border border-orange-500/50 text-orange-400"
+                                            ? "bg-red-500/20 border border-red-500/50 text-red-400 animate-pulse"
+                                            : "bg-orange-500/20 border border-orange-500/50 text-orange-400"
                                             }`}>
                                             <div className="flex items-center gap-2">
                                                 <AlertTriangle size={14} />

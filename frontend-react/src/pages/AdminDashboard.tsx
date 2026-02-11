@@ -63,18 +63,18 @@ export const AdminDashboard: React.FC = () => {
     });
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-8">
+        <div className="min-h-screen bg-slate-950 text-white p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
-                <header className="flex justify-between items-center mb-8">
+                <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
+                        <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
                             Panel de Validación de Seguridad
                         </h1>
                         <p className="text-slate-400 mt-2">
                             Revisar y validar infracciones detectadas por AI
                         </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                         {(["pending", "reviewed", "all"] as const).map((f) => (
                             <button
                                 key={f}

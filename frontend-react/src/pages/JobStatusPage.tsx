@@ -63,13 +63,13 @@ export const JobStatusPage = () => {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
         <div>
           <p className="text-sm text-slate-400 uppercase">Job #{jobId}</p>
-          <h2 className="text-3xl font-bold text-white">Seguimiento del job</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-white">Seguimiento del job</h2>
           <p className={`mt-2 text-sm font-semibold ${statusTone.color}`}>{statusTone.label}</p>
         </div>
-        <div className="text-right text-sm text-slate-400 space-y-1">
+        <div className="text-right text-sm text-slate-400 space-y-1 hidden sm:block">
           <p>Creado: {job?.created_at ?? "..."}</p>
           <p>Inicio: {job?.started_at ?? "pendiente"}</p>
           <p>Fin: {job?.finished_at ?? "pendiente"}</p>

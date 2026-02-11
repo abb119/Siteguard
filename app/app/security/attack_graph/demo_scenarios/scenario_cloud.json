@@ -1,0 +1,244 @@
+{
+    "scenario_id": "cloud_webapp",
+    "name": "Cloud Web Application",
+    "description": "A typical cloud-hosted web application with database, API servers, and admin panel.",
+    "assets": [
+        {
+            "name": "Internet Gateway",
+            "type": "gateway",
+            "zone": "internet",
+            "criticality": 2,
+            "services": [
+                {
+                    "name": "HTTP Proxy",
+                    "port": 443,
+                    "protocol": "tcp",
+                    "exposed": true,
+                    "auth_type": "none"
+                }
+            ]
+        },
+        {
+            "name": "Load Balancer",
+            "type": "cloud_service",
+            "zone": "dmz",
+            "criticality": 4,
+            "services": [
+                {
+                    "name": "HTTPS",
+                    "port": 443,
+                    "protocol": "tcp",
+                    "exposed": true,
+                    "auth_type": "none"
+                }
+            ]
+        },
+        {
+            "name": "Web Server (Node.js)",
+            "type": "server",
+            "zone": "dmz",
+            "criticality": 6,
+            "services": [
+                {
+                    "name": "Express API",
+                    "port": 3000,
+                    "protocol": "tcp",
+                    "exposed": false,
+                    "auth_type": "basic"
+                },
+                {
+                    "name": "SSH",
+                    "port": 22,
+                    "protocol": "tcp",
+                    "exposed": false,
+                    "auth_type": "basic"
+                }
+            ],
+            "findings": [
+                {
+                    "kind": "vuln",
+                    "title": "CVE-2024-21892 — Node.js Permission Bypass",
+                    "cvss": 7.8,
+                    "exploitability": 0.7
+                },
+                {
+                    "kind": "misconfig",
+                    "title": "Debug mode enabled in production",
+                    "cvss": 5.0,
+                    "exploitability": 0.9
+                }
+            ]
+        },
+        {
+            "name": "API Gateway",
+            "type": "cloud_service",
+            "zone": "internal",
+            "criticality": 7,
+            "services": [
+                {
+                    "name": "REST API",
+                    "port": 8080,
+                    "protocol": "tcp",
+                    "exposed": false,
+                    "auth_type": "basic"
+                }
+            ],
+            "findings": [
+                {
+                    "kind": "misconfig",
+                    "title": "Overly permissive IAM role",
+                    "cvss": 6.5,
+                    "exploitability": 0.8
+                }
+            ]
+        },
+        {
+            "name": "PostgreSQL Database",
+            "type": "database",
+            "zone": "internal",
+            "criticality": 10,
+            "services": [
+                {
+                    "name": "PostgreSQL",
+                    "port": 5432,
+                    "protocol": "tcp",
+                    "exposed": false,
+                    "auth_type": "basic"
+                }
+            ],
+            "findings": [
+                {
+                    "kind": "vuln",
+                    "title": "Weak database password (dictionary attack)",
+                    "cvss": 8.1,
+                    "exploitability": 0.6
+                }
+            ]
+        },
+        {
+            "name": "Redis Cache",
+            "type": "server",
+            "zone": "internal",
+            "criticality": 5,
+            "services": [
+                {
+                    "name": "Redis",
+                    "port": 6379,
+                    "protocol": "tcp",
+                    "exposed": false,
+                    "auth_type": "none"
+                }
+            ],
+            "findings": [
+                {
+                    "kind": "misconfig",
+                    "title": "Redis exposed without authentication",
+                    "cvss": 9.1,
+                    "exploitability": 0.95
+                }
+            ]
+        },
+        {
+            "name": "Admin Panel",
+            "type": "server",
+            "zone": "internal",
+            "criticality": 9,
+            "services": [
+                {
+                    "name": "Admin Web UI",
+                    "port": 8443,
+                    "protocol": "tcp",
+                    "exposed": false,
+                    "auth_type": "basic"
+                }
+            ],
+            "findings": [
+                {
+                    "kind": "vuln",
+                    "title": "Default admin credentials (admin/admin)",
+                    "cvss": 9.8,
+                    "exploitability": 1.0
+                }
+            ]
+        },
+        {
+            "name": "S3 Secrets Bucket",
+            "type": "cloud_service",
+            "zone": "cloud",
+            "criticality": 10,
+            "services": [
+                {
+                    "name": "S3 API",
+                    "port": 443,
+                    "protocol": "tcp",
+                    "exposed": false,
+                    "auth_type": "basic"
+                }
+            ],
+            "findings": [
+                {
+                    "kind": "misconfig",
+                    "title": "S3 bucket policy allows public read",
+                    "cvss": 8.5,
+                    "exploitability": 0.85
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "patch",
+            "description": "Patch Node.js CVE-2024-21892",
+            "cost": 2.0,
+            "downtime_risk": 0.1
+        },
+        {
+            "type": "close_port",
+            "description": "Disable SSH on Web Server",
+            "cost": 1.0,
+            "downtime_risk": 0.0
+        },
+        {
+            "type": "restrict_iam",
+            "description": "Apply least-privilege IAM on API Gateway",
+            "cost": 1.5,
+            "downtime_risk": 0.05
+        },
+        {
+            "type": "patch",
+            "description": "Set strong PostgreSQL password",
+            "cost": 1.0,
+            "downtime_risk": 0.1
+        },
+        {
+            "type": "close_port",
+            "description": "Enable Redis AUTH + bind localhost",
+            "cost": 1.0,
+            "downtime_risk": 0.05
+        },
+        {
+            "type": "patch",
+            "description": "Change default admin credentials",
+            "cost": 0.5,
+            "downtime_risk": 0.0
+        },
+        {
+            "type": "restrict_iam",
+            "description": "Fix S3 bucket policy (deny public)",
+            "cost": 1.0,
+            "downtime_risk": 0.0
+        },
+        {
+            "type": "segment",
+            "description": "Add WAF in front of Load Balancer",
+            "cost": 3.0,
+            "downtime_risk": 0.1
+        },
+        {
+            "type": "close_port",
+            "description": "Disable debug mode on Web Server",
+            "cost": 0.5,
+            "downtime_risk": 0.0
+        }
+    ]
+}

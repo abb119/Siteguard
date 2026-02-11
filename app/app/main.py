@@ -16,6 +16,13 @@ from app.app.db.seed_db import seed_users
 from app.app.jobs.cleanup import cleanup_loop
 from app.app.jobs.worker import job_worker_loop
 
+# Import security models so SQLAlchemy creates tables on startup
+from app.app.security.common import models as security_models  # noqa: F401
+from app.app.security.honeytokens import models as ht_models  # noqa: F401
+from app.app.security.attack_graph import models as ag_models  # noqa: F401
+from app.app.security.llm_gateway import models as llm_models  # noqa: F401
+from app.app.security.router import router as security_router, mount_sub_routers
+
 try:  # Optional video processors (ADAS/DMS)
     import app.app.driver  # noqa: F401
 except Exception as exc:  # pragma: no cover - optional dependency
@@ -90,6 +97,10 @@ Instrumentator().instrument(app).expose(app)
 # Include API routers
 app.include_router(routes.router)
 app.include_router(jobs_routes.router)
+
+# Security module
+mount_sub_routers()
+app.include_router(security_router, prefix="/api/security")
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):

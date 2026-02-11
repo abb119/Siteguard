@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import {
     ShieldCheck,
@@ -6,6 +6,8 @@ import {
     Video,
     Upload,
     History,
+    Menu,
+    X,
 } from "lucide-react";
 
 type NavItem = {
@@ -29,10 +31,40 @@ export const ServiceLayout: React.FC<ServiceLayoutProps> = ({
     accentColor,
     navItems,
 }) => {
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
     return (
         <div className="flex min-h-screen bg-slate-950 text-white font-sans">
-            {/* Sidebar */}
-            <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col fixed h-full z-10">
+            {/* Mobile header bar */}
+            <div className="fixed top-0 left-0 right-0 z-30 flex items-center gap-3 bg-slate-900 border-b border-slate-800 p-3 md:hidden">
+                <button
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
+                    aria-label="Toggle menu"
+                >
+                    {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+                </button>
+                <div className={`p-1.5 rounded-lg ${accentColor}`}>
+                    {serviceIcon}
+                </div>
+                <h1 className="font-bold text-sm tracking-tight truncate">{serviceName}</h1>
+            </div>
+
+            {/* Mobile overlay */}
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/60 z-20 md:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
+            {/* Sidebar — hidden on mobile by default, slide in when toggled */}
+            <aside className={`
+                w-64 bg-slate-900 border-r border-slate-800 flex flex-col fixed h-full z-20
+                transition-transform duration-200 ease-in-out
+                ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+                md:translate-x-0
+            `}>
                 {/* Header */}
                 <div className="p-4 border-b border-slate-800">
                     <Link
@@ -60,6 +92,7 @@ export const ServiceLayout: React.FC<ServiceLayoutProps> = ({
                             key={item.to}
                             to={item.to}
                             end
+                            onClick={() => setSidebarOpen(false)}
                             className={({ isActive }) =>
                                 [
                                     "flex items-center gap-3 w-full p-3 rounded-lg transition-all font-medium text-sm",
@@ -89,8 +122,8 @@ export const ServiceLayout: React.FC<ServiceLayoutProps> = ({
                 </div>
             </aside>
 
-            {/* Main Content */}
-            <main className="flex-1 ml-64 min-h-screen">{children}</main>
+            {/* Main Content — offset for sidebar on desktop, top bar on mobile */}
+            <main className="flex-1 md:ml-64 min-h-screen pt-14 md:pt-0">{children}</main>
         </div>
     );
 };

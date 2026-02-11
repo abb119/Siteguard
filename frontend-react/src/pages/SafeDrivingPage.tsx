@@ -423,15 +423,15 @@ export const SafeDrivingPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-slate-900 text-white">
             {/* Header */}
-            <header className="bg-slate-800 border-b border-slate-700 px-6 py-4">
+            <header className="bg-slate-800 border-b border-slate-700 px-4 md:px-6 py-3 md:py-4">
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 md:gap-4">
                         <Link to="/services/driver" className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
                             <ArrowLeft size={20} />
                         </Link>
                         <div>
-                            <h1 className="text-xl font-bold">Conducción Segura</h1>
-                            <p className="text-sm text-slate-400">Análisis dual de cámaras frontal y trasera</p>
+                            <h1 className="text-lg md:text-xl font-bold">Conducción Segura</h1>
+                            <p className="text-xs md:text-sm text-slate-400">Análisis dual de cámaras frontal y trasera</p>
                         </div>
                     </div>
                     <button
@@ -443,7 +443,7 @@ export const SafeDrivingPage: React.FC = () => {
                 </div>
             </header>
 
-            <main className="p-6">
+            <main className="p-4 md:p-6">
                 {/* Dual Camera Grid */}
                 <div className="grid lg:grid-cols-2 gap-6 mb-6">
                     <div>

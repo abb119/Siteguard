@@ -59,10 +59,10 @@ export const UploadJobPage = () => {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
         <div>
           <p className="text-sm uppercase tracking-wide text-slate-400">Demo pública</p>
-          <h2 className="text-3xl font-bold text-white mt-2">
+          <h2 className="text-2xl md:text-3xl font-bold text-white mt-2">
             PPE Jobs · análisis asincrónico
           </h2>
           <p className="text-slate-400 mt-2 max-w-2xl">
@@ -70,7 +70,7 @@ export const UploadJobPage = () => {
             duración y límite de concurrencia antes de iniciar el procesamiento.
           </p>
         </div>
-        <div className="text-right text-sm text-slate-400">
+        <div className="text-right text-sm text-slate-400 hidden sm:block">
           <p>Cola global · 1 job en espera</p>
           <p>Tiempo estimado: 10-60 s (CPU)</p>
         </div>
@@ -78,8 +78,8 @@ export const UploadJobPage = () => {
 
       <div
         className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all ${isDragging
-            ? "border-emerald-400 bg-emerald-400/10"
-            : "border-slate-700 bg-slate-900/60"
+          ? "border-emerald-400 bg-emerald-400/10"
+          : "border-slate-700 bg-slate-900/60"
           }`}
         onDragOver={(e) => {
           e.preventDefault();

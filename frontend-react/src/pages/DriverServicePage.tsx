@@ -16,9 +16,9 @@ export const DriverServicePage: React.FC = () => {
                 { to: "/services/driver/settings", label: "Configuración", icon: Settings },
             ]}
         >
-            <div className="p-8">
+            <div className="p-4 md:p-8">
                 <div className="mb-6">
-                    <h1 className="text-3xl font-bold mb-2">Sistema ADAS - Conducción Segura</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold mb-2">Sistema ADAS - Conducción Segura</h1>
                     <p className="text-slate-400">
                         Monitoreo en tiempo real de fatiga y distracciones del conductor. Detecta somnolencia, uso de teléfono y más.
                     </p>

@@ -1,0 +1,36 @@
+name: default-security-policy
+version: 1
+description: Default LLM security policy for SiteGuard
+
+injection:
+  enabled: true
+  threshold: 0.5
+  action: block        # block | warn | log
+  
+dlp:
+  enabled: true
+  redact_pii: true
+  redact_secrets: true
+  action: redact       # redact | block | log
+  
+tool_firewall:
+  enabled: true
+  mode: allowlist      # allowlist | denylist
+  allowed_tools:
+    - create_ticket
+    - search_docs
+    - list_users
+    - get_status
+    - send_notification
+    - generate_report
+    - query_database
+
+blocked_patterns:
+  - "password"
+  - "api_key" 
+  - "secret"
+  - "credential"
+
+rate_limit:
+  max_requests_per_minute: 60
+  max_tokens_per_request: 4096

@@ -1,0 +1,194 @@
+{
+    "scenario_id": "factory_ot",
+    "name": "Smart Factory (OT/IT)",
+    "description": "Industrial factory with OT/SCADA systems, corporate network, and IoT sensors.",
+    "assets": [
+        {
+            "name": "Corporate Firewall",
+            "type": "firewall",
+            "zone": "internet",
+            "criticality": 3,
+            "services": [
+                {
+                    "name": "VPN Gateway",
+                    "port": 443,
+                    "protocol": "tcp",
+                    "exposed": true,
+                    "auth_type": "basic"
+                }
+            ]
+        },
+        {
+            "name": "Engineering Workstation",
+            "type": "workstation",
+            "zone": "internal",
+            "criticality": 6,
+            "services": [
+                {
+                    "name": "RDP",
+                    "port": 3389,
+                    "protocol": "tcp",
+                    "exposed": false,
+                    "auth_type": "basic"
+                },
+                {
+                    "name": "SMB",
+                    "port": 445,
+                    "protocol": "tcp",
+                    "exposed": false,
+                    "auth_type": "none"
+                }
+            ],
+            "findings": [
+                {
+                    "kind": "vuln",
+                    "title": "EternalBlue (MS17-010) — SMB RCE",
+                    "cvss": 9.8,
+                    "exploitability": 0.95
+                },
+                {
+                    "kind": "misconfig",
+                    "title": "Local admin password reuse",
+                    "cvss": 7.0,
+                    "exploitability": 0.8
+                }
+            ]
+        },
+        {
+            "name": "Active Directory",
+            "type": "server",
+            "zone": "internal",
+            "criticality": 9,
+            "services": [
+                {
+                    "name": "LDAP",
+                    "port": 389,
+                    "protocol": "tcp",
+                    "exposed": false,
+                    "auth_type": "basic"
+                }
+            ],
+            "findings": [
+                {
+                    "kind": "vuln",
+                    "title": "Kerberoasting vulnerable service accounts",
+                    "cvss": 7.5,
+                    "exploitability": 0.7
+                }
+            ]
+        },
+        {
+            "name": "Historian Server",
+            "type": "server",
+            "zone": "ot",
+            "criticality": 8,
+            "services": [
+                {
+                    "name": "OPC-UA",
+                    "port": 4840,
+                    "protocol": "tcp",
+                    "exposed": false,
+                    "auth_type": "none"
+                }
+            ],
+            "findings": [
+                {
+                    "kind": "misconfig",
+                    "title": "OPC-UA anonymous access enabled",
+                    "cvss": 8.0,
+                    "exploitability": 0.9
+                }
+            ]
+        },
+        {
+            "name": "SCADA HMI",
+            "type": "iot",
+            "zone": "ot",
+            "criticality": 10,
+            "services": [
+                {
+                    "name": "Modbus TCP",
+                    "port": 502,
+                    "protocol": "tcp",
+                    "exposed": false,
+                    "auth_type": "none"
+                }
+            ],
+            "findings": [
+                {
+                    "kind": "vuln",
+                    "title": "Unpatched SCADA firmware (CVE-2023-xxxx)",
+                    "cvss": 9.0,
+                    "exploitability": 0.6
+                }
+            ]
+        },
+        {
+            "name": "IoT Sensor Gateway",
+            "type": "iot",
+            "zone": "ot",
+            "criticality": 5,
+            "services": [
+                {
+                    "name": "MQTT",
+                    "port": 1883,
+                    "protocol": "tcp",
+                    "exposed": false,
+                    "auth_type": "none"
+                }
+            ],
+            "findings": [
+                {
+                    "kind": "misconfig",
+                    "title": "MQTT broker without TLS or auth",
+                    "cvss": 7.0,
+                    "exploitability": 0.85
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "patch",
+            "description": "Apply MS17-010 patch on Engineering Workstation",
+            "cost": 1.5,
+            "downtime_risk": 0.1
+        },
+        {
+            "type": "restrict_iam",
+            "description": "Enforce unique local admin passwords (LAPS)",
+            "cost": 2.0,
+            "downtime_risk": 0.0
+        },
+        {
+            "type": "patch",
+            "description": "Rotate Kerberoastable service account keys",
+            "cost": 2.0,
+            "downtime_risk": 0.15
+        },
+        {
+            "type": "segment",
+            "description": "Segment IT/OT networks with firewall rules",
+            "cost": 4.0,
+            "downtime_risk": 0.2
+        },
+        {
+            "type": "close_port",
+            "description": "Enable OPC-UA authentication",
+            "cost": 1.5,
+            "downtime_risk": 0.1
+        },
+        {
+            "type": "patch",
+            "description": "Update SCADA firmware",
+            "cost": 3.0,
+            "downtime_risk": 0.3
+        },
+        {
+            "type": "close_port",
+            "description": "Enable MQTT TLS + authentication",
+            "cost": 1.0,
+            "downtime_risk": 0.05
+        }
+    ]
+}

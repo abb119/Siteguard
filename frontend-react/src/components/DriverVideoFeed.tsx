@@ -339,7 +339,7 @@ export const DriverVideoFeed: React.FC = () => {
                     className="hidden"
                     onChange={handleFileUpload}
                 />
-                <div className="ml-auto flex items-center gap-4 text-sm text-slate-400">
+                <div className="flex items-center gap-4 text-sm text-slate-400 sm:ml-auto">
                     <span className={`px-3 py-1 rounded-full ${wsStatus === "Conectado" ? "bg-green-500/20 text-green-400" : "bg-slate-700"}`}>
                         {wsStatus}
                     </span>

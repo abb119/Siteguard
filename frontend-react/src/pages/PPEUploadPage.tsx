@@ -12,8 +12,8 @@ export const PPEUploadPage: React.FC = () => {
             accentColor="bg-cyan-500/20"
             navItems={PPENavItems}
         >
-            <div className="p-8">
-                <h1 className="text-3xl font-bold mb-6">Subir Video para Análisis</h1>
+            <div className="p-4 md:p-8">
+                <h1 className="text-2xl md:text-3xl font-bold mb-6">Subir Video para Análisis</h1>
                 <VideoFeed initialMode="file" />
             </div>
         </ServiceLayout>

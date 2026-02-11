@@ -11,10 +11,11 @@ import {
     Play,
     Sparkles,
 } from "lucide-react";
+import DotGrid from "../components/DotGrid";
 
 export const LandingPage: React.FC = () => {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white overflow-x-hidden">
             {/* Header */}
             <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-slate-900/70 border-b border-slate-800">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -29,27 +30,24 @@ export const LandingPage: React.FC = () => {
                         <a href="#features" className="hover:text-white transition-colors">Características</a>
                         <a href="#contact" className="hover:text-white transition-colors">Contacto</a>
                     </nav>
-                    <div className="flex items-center gap-3">
-                        <button className="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">
-                            Iniciar Sesión
-                        </button>
-                        <Link
-                            to="/services/ppe"
-                            className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg hover:from-cyan-400 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/25"
-                        >
-                            Demo Gratis
-                        </Link>
-                    </div>
+
                 </div>
             </header>
 
             {/* Hero Section */}
             <section className="relative pt-32 pb-20 px-6 overflow-hidden">
-                {/* Background Effects */}
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
-                    <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
-                </div>
+                {/* DotGrid Background Animation */}
+                <DotGrid
+                    dotSize={5}
+                    gap={15}
+                    baseColor="#271E37"
+                    activeColor="#5227FF"
+                    proximity={120}
+                    shockRadius={250}
+                    shockStrength={5}
+                    resistance={750}
+                    returnDuration={1.5}
+                />
 
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="text-center max-w-4xl mx-auto">
@@ -72,31 +70,28 @@ export const LandingPage: React.FC = () => {
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-                            <Link
-                                to="/services/ppe"
+                            <a
+                                href="#services"
                                 className="group flex items-center gap-2 px-8 py-4 text-lg font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl hover:from-cyan-400 hover:to-blue-500 transition-all shadow-xl shadow-cyan-500/30"
                             >
                                 <Play size={20} />
                                 Ver Demo en Vivo
                                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                            </Link>
-                            <button className="flex items-center gap-2 px-8 py-4 text-lg font-semibold border border-slate-600 rounded-xl hover:bg-slate-800 transition-all">
-                                Solicitar Presupuesto
-                            </button>
+                            </a>
                         </div>
 
                         {/* Stats */}
-                        <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
+                        <div className="grid grid-cols-3 gap-4 md:gap-8 max-w-2xl mx-auto">
                             <div className="text-center">
-                                <div className="text-4xl font-bold text-cyan-400 mb-1">99.2%</div>
+                                <div className="text-2xl md:text-4xl font-bold text-cyan-400 mb-1">99.2%</div>
                                 <div className="text-sm text-slate-500">Precisión</div>
                             </div>
                             <div className="text-center">
-                                <div className="text-4xl font-bold text-cyan-400 mb-1">&lt;50ms</div>
+                                <div className="text-2xl md:text-4xl font-bold text-cyan-400 mb-1">&lt;50ms</div>
                                 <div className="text-sm text-slate-500">Latencia</div>
                             </div>
                             <div className="text-center">
-                                <div className="text-4xl font-bold text-cyan-400 mb-1">24/7</div>
+                                <div className="text-2xl md:text-4xl font-bold text-cyan-400 mb-1">24/7</div>
                                 <div className="text-sm text-slate-500">Monitoreo</div>
                             </div>
                         </div>
@@ -108,7 +103,7 @@ export const LandingPage: React.FC = () => {
             <section id="services" className="py-24 px-6">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16">
-                        <h2 className="text-4xl font-bold mb-4">Nuestros Servicios</h2>
+                        <h2 className="text-2xl md:text-4xl font-bold mb-4">Nuestros Servicios</h2>
                         <p className="text-slate-400 text-lg max-w-2xl mx-auto">
                             Soluciones de seguridad inteligente para diferentes entornos industriales
                         </p>
@@ -168,22 +163,31 @@ export const LandingPage: React.FC = () => {
                             </div>
                         </Link>
 
-                        {/* Coming Soon Card */}
-                        <div className="group relative bg-gradient-to-br from-slate-800/30 to-slate-900/30 border border-slate-800 border-dashed rounded-2xl p-8 opacity-60">
+                        {/* Cybersecurity Card */}
+                        <Link
+                            to="/services/security"
+                            className="group relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700 rounded-2xl p-8 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 hover:-translate-y-1"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
                             <div className="relative z-10">
-                                <div className="w-14 h-14 bg-slate-700 rounded-xl flex items-center justify-center mb-6">
-                                    <Sparkles size={28} className="text-slate-500" />
+                                <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                    <Lock size={28} className="text-white" />
                                 </div>
-                                <h3 className="text-2xl font-bold mb-3 text-slate-500">Próximamente</h3>
-                                <p className="text-slate-600 mb-6 leading-relaxed">
-                                    Nuevos módulos de seguridad en desarrollo. ¿Tienes una idea? Contáctanos.
+                                <h3 className="text-2xl font-bold mb-3">Ciberseguridad</h3>
+                                <p className="text-slate-400 mb-6 leading-relaxed">
+                                    Honeytokens, grafos de ataque con auto-remediación y firewall LLM para proteger tus activos digitales.
                                 </p>
-                                <button className="flex items-center gap-2 text-slate-500 font-semibold">
-                                    Notifícame
-                                    <ArrowRight size={18} />
-                                </button>
+                                <div className="flex flex-wrap gap-2 mb-6">
+                                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-full">Honeytokens</span>
+                                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-full">Attack Graph</span>
+                                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-full">LLM Gateway</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-emerald-400 font-semibold">
+                                    Explorar
+                                    <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
+                                </div>
                             </div>
-                        </div>
+                        </Link>
                     </div>
                 </div>
             </section>
@@ -192,11 +196,11 @@ export const LandingPage: React.FC = () => {
             <section id="features" className="py-24 px-6 bg-slate-900/50">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16">
-                        <h2 className="text-4xl font-bold mb-4">¿Por qué SiteGuard?</h2>
+                        <h2 className="text-2xl md:text-4xl font-bold mb-4">¿Por qué SiteGuard?</h2>
                         <p className="text-slate-400 text-lg">Tecnología de vanguardia al servicio de la seguridad</p>
                     </div>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <FeatureCard
                             icon={<Zap className="text-yellow-400" size={24} />}
                             title="Tiempo Real"
@@ -228,7 +232,7 @@ export const LandingPage: React.FC = () => {
             {/* CTA Section */}
             <section id="contact" className="py-24 px-6">
                 <div className="max-w-4xl mx-auto text-center">
-                    <h2 className="text-4xl font-bold mb-4">¿Listo para prevenir accidentes?</h2>
+                    <h2 className="text-2xl md:text-4xl font-bold mb-4">¿Listo para prevenir accidentes?</h2>
                     <p className="text-slate-400 text-lg mb-10">
                         Agenda una demo personalizada y descubre cómo SiteGuard puede proteger a tu equipo.
                     </p>

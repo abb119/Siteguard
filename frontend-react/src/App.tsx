@@ -9,6 +9,10 @@ import { PPEUploadPage } from "./pages/PPEUploadPage";
 import { SafeDrivingPage } from "./pages/SafeDrivingPage";
 import { ErgonomicsPage } from "./pages/ErgonomicsPage";
 import { VehicleControlPage } from "./pages/VehicleControlPage";
+import { SecurityDashboard } from "./pages/SecurityDashboard";
+import { HoneytokensPage } from "./pages/HoneytokensPage";
+import { AttackGraphPage } from "./pages/AttackGraphPage";
+import { LlmGatewayPage } from "./pages/LlmGatewayPage";
 
 function App() {
   return (
@@ -27,6 +31,12 @@ function App() {
       <Route path="/services/driver" element={<DriverServicePage />} />
       <Route path="/services/driver/safe-driving" element={<SafeDrivingPage />} />
 
+      {/* Security Module */}
+      <Route path="/services/security" element={<SecurityDashboard />} />
+      <Route path="/services/security/honeytokens" element={<HoneytokensPage />} />
+      <Route path="/services/security/attack-graph" element={<AttackGraphPage />} />
+      <Route path="/services/security/llm-gateway" element={<LlmGatewayPage />} />
+
       {/* Job Routes - Nested under services */}
       <Route path="/jobs/:jobId" element={<JobStatusPage />} />
       <Route path="/jobs/:jobId/result" element={<JobResultPage />} />
@@ -38,3 +48,4 @@ function App() {
 }
 
 export default App;
+

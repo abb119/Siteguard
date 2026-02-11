@@ -92,13 +92,13 @@ export const JobResultPage = () => {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
         <div>
           <p className="text-sm text-slate-400 uppercase">Job #{jobId}</p>
-          <h2 className="text-3xl font-bold text-white">Resultados</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-white">Resultados</h2>
           <p className="text-slate-400 mt-2">Eventos, metricas y snapshots anotados listos para compartir.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <Link to="/" className="px-5 py-2 rounded-xl border border-slate-600 text-slate-200 hover:bg-slate-700 transition">
             Nuevo upload
           </Link>
