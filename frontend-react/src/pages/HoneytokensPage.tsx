@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Key, Plus, Zap, Play, RotateCcw, ShieldAlert, CheckCircle, AlertTriangle, Shield } from "lucide-react";
+import { Key, Plus, Zap, ShieldAlert, AlertTriangle, Shield } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
 import { SecurityNavItems } from "./SecurityDashboard";
 
@@ -73,7 +73,7 @@ export const HoneytokensPage: React.FC = () => {
         const res = await fetch(`${API_URL}/api/security/honeytokens/simulate-trigger/${tokenId}`, {
             method: "POST",
         });
-        const data = await res.json();
+        await res.json();
         setMessage(`🚨 Token triggered! Critical event emitted.`);
         fetchEvents(tokenId);
         setLoading(false);

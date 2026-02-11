@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Network, Play, Download, AlertCircle, Shield, Zap, CheckCircle2 } from "lucide-react";
+import { Network, AlertCircle, Shield, Zap } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
 import { SecurityNavItems } from "./SecurityDashboard";
 
@@ -45,11 +45,8 @@ const zoneColors: Record<string, string> = {
     ot: "#ec4899",
 };
 
-const nodeTypeShapes: Record<string, string> = {
-    internet: "◆", gateway: "◈", zone: "▣", asset: "●",
-    service: "○", server: "●", database: "◉", firewall: "◼",
-    cloud_service: "☁", workstation: "◻", iot: "◎",
-};
+
+
 
 export const AttackGraphPage: React.FC = () => {
     const [scenarios, setScenarios] = useState<any[]>([]);

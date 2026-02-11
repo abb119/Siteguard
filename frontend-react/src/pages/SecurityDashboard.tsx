@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Shield, Network, Key, Brain, Activity, AlertTriangle, Eye } from "lucide-react";
+import { Shield, Network, Key, Brain, Activity } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Brain, Send, ShieldCheck, ShieldAlert, ShieldX, Play, FileText, Settings, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { Brain, Send, ShieldCheck, ShieldAlert, ShieldX, Play, FileText, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
 import { SecurityNavItems } from "./SecurityDashboard";
 
