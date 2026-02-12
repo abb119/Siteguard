@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Brain, Send, ShieldCheck, ShieldAlert, ShieldX, Play, FileText, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
+import { apiFetch } from "../lib/api";
 import { SecurityNavItems } from "./SecurityDashboard";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
@@ -51,7 +52,7 @@ export const LlmGatewayPage: React.FC = () => {
     const [tab, setTab] = useState<"playground" | "tests" | "audit">("playground");
 
     const fetchAudit = () => {
-        fetch(`${API_URL}/api/security/llm/audit?limit=30`).then(r => r.json()).then(setAudit).catch(() => { });
+        apiFetch(`${API_URL}/api/security/llm/audit?limit=30`).then(r => r.json()).then(setAudit).catch(() => { });
     };
 
     useEffect(() => { fetchAudit(); }, []);
@@ -61,7 +62,7 @@ export const LlmGatewayPage: React.FC = () => {
         setLoading(true);
         const body: any = { prompt, session_id: "playground" };
         if (tools.trim()) body.tools_requested = tools.split(",").map(t => t.trim());
-        const res = await fetch(`${API_URL}/api/security/llm/evaluate`, {
+        const res = await apiFetch(`${API_URL}/api/security/llm/evaluate`, {
             method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
         });
         const data = await res.json();
@@ -72,7 +73,7 @@ export const LlmGatewayPage: React.FC = () => {
 
     const runTests = async () => {
         setLoading(true);
-        const res = await fetch(`${API_URL}/api/security/llm/test-suite/run`, { method: "POST" });
+        const res = await apiFetch(`${API_URL}/api/security/llm/test-suite/run`, { method: "POST" });
         const data = await res.json();
         setTestResults(data.results);
         setTestSummary({ total: data.total, passed: data.passed, failed: data.failed });

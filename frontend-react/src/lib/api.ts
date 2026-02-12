@@ -62,3 +62,13 @@ export function buildArtifactUrl(path: string): string {
     if (path.startsWith("/")) return path;
     return `${API_BASE}/${path}`;
 }
+
+/**
+ * Wrapper around fetch that adds ngrok-skip-browser-warning header.
+ * Prevents ngrok free-tier HTML interstitial from breaking API calls.
+ */
+export function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+    const headers = new Headers(init?.headers);
+    headers.set("ngrok-skip-browser-warning", "true");
+    return fetch(url, { ...init, headers });
+}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Network, AlertCircle, Shield, Zap } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
+import { apiFetch } from "../lib/api";
 import { SecurityNavItems } from "./SecurityDashboard";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
@@ -61,7 +62,7 @@ export const AttackGraphPage: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
-        fetch(`${API_URL}/api/security/attack-graph/scenarios`).then(r => r.json()).then(setScenarios).catch(() => { });
+        apiFetch(`${API_URL}/api/security/attack-graph/scenarios`).then(r => r.json()).then(setScenarios).catch(() => { });
     }, []);
 
     const loadScenario = async (scenarioId: string) => {
@@ -74,7 +75,7 @@ export const AttackGraphPage: React.FC = () => {
             };
             const loadName = nameMap[scenarioId] || scenarioId;
 
-            const loadRes = await fetch(`${API_URL}/api/security/attack-graph/scenarios/load`, {
+            const loadRes = await apiFetch(`${API_URL}/api/security/attack-graph/scenarios/load`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ scenario_name: loadName }),
@@ -87,7 +88,7 @@ export const AttackGraphPage: React.FC = () => {
 
             // Build graph
             setLoading("Building attack graph...");
-            const res = await fetch(`${API_URL}/api/security/attack-graph/build?scenario_id=${sid}`, { method: "POST" });
+            const res = await apiFetch(`${API_URL}/api/security/attack-graph/build?scenario_id=${sid}`, { method: "POST" });
             const data = await res.json();
             if (data.error) { console.error("Build error:", data.error); setLoading(null); return; }
             setNodes(data.nodes || []);
@@ -96,7 +97,7 @@ export const AttackGraphPage: React.FC = () => {
 
             // Get paths
             setLoading("Finding attack paths...");
-            const pathsRes = await fetch(`${API_URL}/api/security/attack-graph/paths?scenario_id=${sid}`);
+            const pathsRes = await apiFetch(`${API_URL}/api/security/attack-graph/paths?scenario_id=${sid}`);
             const pathsData = await pathsRes.json();
             setPaths(pathsData.paths || []);
 
@@ -112,7 +113,7 @@ export const AttackGraphPage: React.FC = () => {
         if (!selectedScenario) return;
         setLoading("Generating remediation plan...");
         try {
-            const res = await fetch(`${API_URL}/api/security/attack-graph/plan`, {
+            const res = await apiFetch(`${API_URL}/api/security/attack-graph/plan`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ scenario_id: selectedScenario }),

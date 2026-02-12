@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Key, Plus, Zap, ShieldAlert, AlertTriangle, Shield, Link2, KeyRound, User, FileText } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
+import { apiFetch } from "../lib/api";
 import { SecurityNavItems } from "./SecurityDashboard";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
@@ -39,14 +40,14 @@ export const HoneytokensPage: React.FC = () => {
     const [playResult, setPlayResult] = useState<any>(null);
 
     const fetchTokens = () => {
-        fetch(`${API_URL}/api/security/honeytokens/tokens`).then(r => r.json()).then(setTokens).catch(() => { });
+        apiFetch(`${API_URL}/api/security/honeytokens/tokens`).then(r => r.json()).then(setTokens).catch(() => { });
     };
 
     const fetchEvents = (tokenId?: number) => {
         const url = tokenId
             ? `${API_URL}/api/security/honeytokens/events?token_id=${tokenId}`
             : `${API_URL}/api/security/honeytokens/events`;
-        fetch(url).then(r => r.json()).then(setEvents).catch(() => { });
+        apiFetch(url).then(r => r.json()).then(setEvents).catch(() => { });
     };
 
     useEffect(() => {
@@ -56,7 +57,7 @@ export const HoneytokensPage: React.FC = () => {
 
     const createPack = async () => {
         setLoading(true);
-        const res = await fetch(`${API_URL}/api/security/honeytokens/packs/create`, {
+        const res = await apiFetch(`${API_URL}/api/security/honeytokens/packs/create`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ placement: "Production Environment" }),
@@ -70,7 +71,7 @@ export const HoneytokensPage: React.FC = () => {
 
     const simulateTrigger = async (tokenId: number) => {
         setLoading(true);
-        const res = await fetch(`${API_URL}/api/security/honeytokens/simulate-trigger/${tokenId}`, {
+        const res = await apiFetch(`${API_URL}/api/security/honeytokens/simulate-trigger/${tokenId}`, {
             method: "POST",
         });
         await res.json();
@@ -82,7 +83,7 @@ export const HoneytokensPage: React.FC = () => {
 
     const runPlaybook = async (tokenId: number, action: string) => {
         setLoading(true);
-        const res = await fetch(`${API_URL}/api/security/honeytokens/playbooks/run`, {
+        const res = await apiFetch(`${API_URL}/api/security/honeytokens/playbooks/run`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token_id: tokenId, action, simulate: true }),

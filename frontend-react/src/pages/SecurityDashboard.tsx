@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Shield, Network, Key, Brain, Activity } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
+import { apiFetch } from "../lib/api";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 const WS_BASE = (import.meta.env.VITE_WS_URL || "ws://127.0.0.1:8000").replace(/\/ws\/.*/, "");
@@ -43,8 +44,8 @@ export const SecurityDashboard: React.FC = () => {
 
     // Fetch initial stats
     useEffect(() => {
-        fetch(`${API_URL}/api/security/stats`).then(r => r.json()).then(setStats).catch(() => { });
-        fetch(`${API_URL}/api/security/events?limit=50`).then(r => r.json()).then(setEvents).catch(() => { });
+        apiFetch(`${API_URL}/api/security/stats`).then(r => r.json()).then(setStats).catch(() => { });
+        apiFetch(`${API_URL}/api/security/events?limit=50`).then(r => r.json()).then(setEvents).catch(() => { });
     }, []);
 
     // WebSocket live feed with reconnection
