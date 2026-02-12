@@ -265,7 +265,7 @@ export const LandingPage: React.FC = () => {
                         <Link to="/admin" className="hover:text-white transition-colors text-cyan-500/50 hover:text-cyan-400">Admin Panel</Link>
                     </div>
                     <div className="text-sm text-slate-500">
-                        © 2025 SiteGuard. Made with 🇪🇸
+                        © 2025 SiteGuard. Made in Spain
                     </div>
                 </div>
             </footer>

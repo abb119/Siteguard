@@ -261,7 +261,7 @@ export const AttackGraphPage: React.FC = () => {
             navItems={SecurityNavItems}
         >
             <div className="p-4 md:p-8">
-                <h1 className="text-2xl md:text-3xl font-bold mb-2">🕸️ Attack Graph Analysis</h1>
+                <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-3"><Network size={28} className="text-cyan-400" /> Attack Graph Analysis</h1>
                 <p className="text-slate-400 text-sm md:text-base mb-4 md:mb-6">Visualize attack paths and generate AI-driven remediation plans.</p>
 
                 {/* Scenario Selector */}

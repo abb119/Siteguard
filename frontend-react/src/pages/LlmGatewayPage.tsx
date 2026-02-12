@@ -222,7 +222,7 @@ export const LlmGatewayPage: React.FC = () => {
                                     {/* Redacted prompt */}
                                     {result.redacted_prompt && (
                                         <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4">
-                                            <h3 className="text-sm font-semibold mb-2">✏️ Redacted Prompt</h3>
+                                            <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5"><FileText size={14} /> Redacted Prompt</h3>
                                             <code className="text-xs text-emerald-300 bg-slate-900/50 rounded p-2 block whitespace-pre-wrap">{result.redacted_prompt}</code>
                                         </div>
                                     )}

@@ -276,8 +276,8 @@ export const VehicleControlPage: React.FC = () => {
                             <div className={`text-2xl font-bold ${result?.risk_level === "high" ? "text-red-400" :
                                 result?.risk_level === "medium" ? "text-orange-400" : "text-green-400"
                                 }`}>
-                                {result?.risk_level === "high" ? "⚠️ PELIGRO" :
-                                    result?.risk_level === "medium" ? "⚡ PRECAUCIÓN" : "✓ SEGURO"}
+                                {result?.risk_level === "high" ? "PELIGRO" :
+                                    result?.risk_level === "medium" ? "PRECAUCIÓN" : "SEGURO"}
                             </div>
                         </div>
 

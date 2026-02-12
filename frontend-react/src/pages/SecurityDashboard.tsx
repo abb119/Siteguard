@@ -102,7 +102,7 @@ export const SecurityDashboard: React.FC = () => {
             navItems={SecurityNavItems}
         >
             <div className="p-4 md:p-8">
-                <h1 className="text-2xl md:text-3xl font-bold mb-2">🛡️ SOC Dashboard</h1>
+                <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-3"><Shield size={28} className="text-cyan-400" /> SOC Dashboard</h1>
                 <p className="text-slate-400 text-sm md:text-base mb-6">Real-time security event monitoring across all modules.</p>
 
                 {/* Stats Cards */}

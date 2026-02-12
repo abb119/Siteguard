@@ -519,7 +519,7 @@ export const VideoFeed: React.FC<{ initialMode?: "webcam" | "file" }> = ({ initi
             <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
               {violationLog.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs">
-                  <span className="text-2xl mb-2 opacity-20">🛡️</span>
+                  <span className="text-2xl mb-2 opacity-20">—</span>
                   Sin violaciones recientes
                 </div>
               ) : (
@@ -549,30 +549,30 @@ export const VideoFeed: React.FC<{ initialMode?: "webcam" | "file" }> = ({ initi
 // PPE color mapping with icons
 const PPE_STYLES: Record<string, { color: string; icon: string; bgColor: string }> = {
   // Compliant items (green variants)
-  "helmet": { color: "#3b82f6", icon: "🪖", bgColor: "rgba(59, 130, 246, 0.15)" },
-  "hardhat": { color: "#3b82f6", icon: "🪖", bgColor: "rgba(59, 130, 246, 0.15)" },
-  "casco": { color: "#3b82f6", icon: "🪖", bgColor: "rgba(59, 130, 246, 0.15)" },
-  "vest": { color: "#f97316", icon: "🦺", bgColor: "rgba(249, 115, 22, 0.15)" },
-  "chaleco": { color: "#f97316", icon: "🦺", bgColor: "rgba(249, 115, 22, 0.15)" },
-  "gloves": { color: "#a855f7", icon: "🧤", bgColor: "rgba(168, 85, 247, 0.15)" },
-  "guantes": { color: "#a855f7", icon: "🧤", bgColor: "rgba(168, 85, 247, 0.15)" },
-  "goggles": { color: "#06b6d4", icon: "🥽", bgColor: "rgba(6, 182, 212, 0.15)" },
-  "gafas": { color: "#06b6d4", icon: "🥽", bgColor: "rgba(6, 182, 212, 0.15)" },
-  "glasses": { color: "#06b6d4", icon: "🥽", bgColor: "rgba(6, 182, 212, 0.15)" },
-  "boots": { color: "#84cc16", icon: "👢", bgColor: "rgba(132, 204, 22, 0.15)" },
-  "botas": { color: "#84cc16", icon: "👢", bgColor: "rgba(132, 204, 22, 0.15)" },
-  "mask": { color: "#ec4899", icon: "😷", bgColor: "rgba(236, 72, 153, 0.15)" },
-  "mascarilla": { color: "#ec4899", icon: "😷", bgColor: "rgba(236, 72, 153, 0.15)" },
-  "person": { color: "#22c55e", icon: "👷", bgColor: "rgba(34, 197, 94, 0.15)" },
-  "persona": { color: "#22c55e", icon: "👷", bgColor: "rgba(34, 197, 94, 0.15)" },
+  "helmet": { color: "#3b82f6", icon: "H", bgColor: "rgba(59, 130, 246, 0.15)" },
+  "hardhat": { color: "#3b82f6", icon: "H", bgColor: "rgba(59, 130, 246, 0.15)" },
+  "casco": { color: "#3b82f6", icon: "H", bgColor: "rgba(59, 130, 246, 0.15)" },
+  "vest": { color: "#f97316", icon: "V", bgColor: "rgba(249, 115, 22, 0.15)" },
+  "chaleco": { color: "#f97316", icon: "V", bgColor: "rgba(249, 115, 22, 0.15)" },
+  "gloves": { color: "#a855f7", icon: "G", bgColor: "rgba(168, 85, 247, 0.15)" },
+  "guantes": { color: "#a855f7", icon: "G", bgColor: "rgba(168, 85, 247, 0.15)" },
+  "goggles": { color: "#06b6d4", icon: "O", bgColor: "rgba(6, 182, 212, 0.15)" },
+  "gafas": { color: "#06b6d4", icon: "O", bgColor: "rgba(6, 182, 212, 0.15)" },
+  "glasses": { color: "#06b6d4", icon: "O", bgColor: "rgba(6, 182, 212, 0.15)" },
+  "boots": { color: "#84cc16", icon: "B", bgColor: "rgba(132, 204, 22, 0.15)" },
+  "botas": { color: "#84cc16", icon: "B", bgColor: "rgba(132, 204, 22, 0.15)" },
+  "mask": { color: "#ec4899", icon: "M", bgColor: "rgba(236, 72, 153, 0.15)" },
+  "mascarilla": { color: "#ec4899", icon: "M", bgColor: "rgba(236, 72, 153, 0.15)" },
+  "person": { color: "#22c55e", icon: "P", bgColor: "rgba(34, 197, 94, 0.15)" },
+  "persona": { color: "#22c55e", icon: "P", bgColor: "rgba(34, 197, 94, 0.15)" },
   // Non-compliant items (red tones)
-  "no helmet": { color: "#ef4444", icon: "⚠️", bgColor: "rgba(239, 68, 68, 0.2)" },
-  "no hardhat": { color: "#ef4444", icon: "⚠️", bgColor: "rgba(239, 68, 68, 0.2)" },
-  "no vest": { color: "#ef4444", icon: "⚠️", bgColor: "rgba(239, 68, 68, 0.2)" },
-  "no gloves": { color: "#ef4444", icon: "⚠️", bgColor: "rgba(239, 68, 68, 0.2)" },
-  "no goggles": { color: "#ef4444", icon: "⚠️", bgColor: "rgba(239, 68, 68, 0.2)" },
-  "no mask": { color: "#ef4444", icon: "⚠️", bgColor: "rgba(239, 68, 68, 0.2)" },
-  "no boots": { color: "#ef4444", icon: "⚠️", bgColor: "rgba(239, 68, 68, 0.2)" },
+  "no helmet": { color: "#ef4444", icon: "!", bgColor: "rgba(239, 68, 68, 0.2)" },
+  "no hardhat": { color: "#ef4444", icon: "!", bgColor: "rgba(239, 68, 68, 0.2)" },
+  "no vest": { color: "#ef4444", icon: "!", bgColor: "rgba(239, 68, 68, 0.2)" },
+  "no gloves": { color: "#ef4444", icon: "!", bgColor: "rgba(239, 68, 68, 0.2)" },
+  "no goggles": { color: "#ef4444", icon: "!", bgColor: "rgba(239, 68, 68, 0.2)" },
+  "no mask": { color: "#ef4444", icon: "!", bgColor: "rgba(239, 68, 68, 0.2)" },
+  "no boots": { color: "#ef4444", icon: "!", bgColor: "rgba(239, 68, 68, 0.2)" },
 };
 
 function getStyleForClass(className: string): { color: string; icon: string; bgColor: string } {
@@ -589,7 +589,7 @@ function getStyleForClass(className: string): { color: string; icon: string; bgC
   // Fallback based on compliance
   const isViolation = normalized.startsWith("no ") || normalized.startsWith("no_");
   return isViolation
-    ? { color: "#ef4444", icon: "⚠️", bgColor: "rgba(239, 68, 68, 0.2)" }
+    ? { color: "#ef4444", icon: "!", bgColor: "rgba(239, 68, 68, 0.2)" }
     : { color: "#22c55e", icon: "✓", bgColor: "rgba(34, 197, 94, 0.15)" };
 }
 

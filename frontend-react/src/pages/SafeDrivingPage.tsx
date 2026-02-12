@@ -325,8 +325,8 @@ const CameraFeed: React.FC<{
                                         <div className={`px-2 py-1 rounded text-xs font-bold ${(hudData as FrontHudData).riskLevel === "high" ? "bg-red-500" :
                                             (hudData as FrontHudData).riskLevel === "medium" ? "bg-orange-500" : "bg-green-500"
                                             }`}>
-                                            {(hudData as FrontHudData).riskLevel === "high" ? "⚠️" :
-                                                (hudData as FrontHudData).riskLevel === "medium" ? "⚡" : "✓"}
+                                            {(hudData as FrontHudData).riskLevel === "high" ? "ALTO" :
+                                                (hudData as FrontHudData).riskLevel === "medium" ? "MEDIO" : "OK"}
                                         </div>
                                     </>
                                 ) : (

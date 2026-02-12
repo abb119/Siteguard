@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Key, Plus, Zap, ShieldAlert, AlertTriangle, Shield } from "lucide-react";
+import { Key, Plus, Zap, ShieldAlert, AlertTriangle, Shield, Link2, KeyRound, User, FileText } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
 import { SecurityNavItems } from "./SecurityDashboard";
 
@@ -24,10 +24,10 @@ type Event = {
 };
 
 const tokenTypeLabel: Record<string, { label: string; icon: string; color: string }> = {
-    canary_url: { label: "Canary URL", icon: "🔗", color: "text-red-400" },
-    fake_api_key: { label: "Fake API Key", icon: "🔑", color: "text-amber-400" },
-    decoy_login: { label: "Decoy Login", icon: "👤", color: "text-purple-400" },
-    decoy_doc: { label: "Decoy Document", icon: "📄", color: "text-blue-400" },
+    canary_url: { label: "Canary URL", icon: "link", color: "text-red-400" },
+    fake_api_key: { label: "Fake API Key", icon: "key", color: "text-amber-400" },
+    decoy_login: { label: "Decoy Login", icon: "user", color: "text-purple-400" },
+    decoy_doc: { label: "Decoy Document", icon: "file", color: "text-blue-400" },
 };
 
 export const HoneytokensPage: React.FC = () => {
@@ -62,7 +62,7 @@ export const HoneytokensPage: React.FC = () => {
             body: JSON.stringify({ placement: "Production Environment" }),
         });
         const data = await res.json();
-        setMessage(`✅ Pack ${data.pack_id} created with ${data.tokens.length} tokens`);
+        setMessage(`Pack ${data.pack_id} created with ${data.tokens.length} tokens`);
         fetchTokens();
         setLoading(false);
         setTimeout(() => setMessage(null), 5000);
@@ -74,7 +74,7 @@ export const HoneytokensPage: React.FC = () => {
             method: "POST",
         });
         await res.json();
-        setMessage(`🚨 Token triggered! Critical event emitted.`);
+        setMessage(`Token triggered! Critical event emitted.`);
         fetchEvents(tokenId);
         setLoading(false);
         setTimeout(() => setMessage(null), 5000);
@@ -146,7 +146,10 @@ export const HoneytokensPage: React.FC = () => {
                                         onClick={() => { setSelectedToken(token); fetchEvents(token.id); }}
                                     >
                                         <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-xl">{cfg.icon}</span>
+                                            {cfg.icon === "link" && <Link2 size={18} className={cfg.color} />}
+                                            {cfg.icon === "key" && <KeyRound size={18} className={cfg.color} />}
+                                            {cfg.icon === "user" && <User size={18} className={cfg.color} />}
+                                            {cfg.icon === "file" && <FileText size={18} className={cfg.color} />}
                                             <span className={`font-medium ${cfg.color}`}>{cfg.label}</span>
                                             {token.revoked && (
                                                 <span className="text-xs bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded ml-auto">REVOKED</span>
