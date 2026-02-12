@@ -218,7 +218,7 @@ export const VehicleControlPage: React.FC = () => {
                     {/* Video Feed */}
                     <div className="lg:col-span-2 bg-slate-800 rounded-xl overflow-hidden">
                         <div className="px-4 py-2 bg-orange-600/30 flex items-center justify-between">
-                            <span className="font-semibold">📹 Cámara</span>
+                            <span className="font-semibold">Cámara</span>
                             <span className="text-xs text-slate-300">{fps} fps · {result?.latency_ms?.toFixed(0) || 0}ms</span>
                         </div>
                         <div className="relative aspect-video bg-slate-900">

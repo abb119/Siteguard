@@ -101,11 +101,11 @@ export const LlmGatewayPage: React.FC = () => {
             navItems={SecurityNavItems}
         >
             <div className="p-4 md:p-8">
-                <h1 className="text-2xl md:text-3xl font-bold mb-2">🧠 LLM Security Gateway</h1>
+                <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-3"><Brain size={28} className="text-cyan-400" /> LLM Security Gateway</h1>
                 <p className="text-slate-400 text-sm md:text-base mb-4 md:mb-6">Injection detection, DLP, and tool firewall for LLM applications.</p>
 
                 <div className="flex gap-2 mb-4 md:mb-6 overflow-x-auto pb-1">
-                    {([["playground", "🔬 Playground"], ["tests", "🧪 Test Suite"], ["audit", "📋 Audit Log"]] as const).map(([t, label]) => (
+                    {([["playground", "Playground"], ["tests", "Test Suite"], ["audit", "Audit Log"]] as const).map(([t, label]) => (
                         <button
                             key={t}
                             onClick={() => setTab(t)}
@@ -207,7 +207,7 @@ export const LlmGatewayPage: React.FC = () => {
                                     {/* DLP hits */}
                                     {result.dlp_hits.length > 0 && (
                                         <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4">
-                                            <h3 className="text-sm font-semibold mb-2">🔍 DLP Hits</h3>
+                                            <h3 className="text-sm font-semibold mb-2">DLP Hits</h3>
                                             <div className="space-y-1">
                                                 {result.dlp_hits.map((h: any, i: number) => (
                                                     <div key={i} className="flex justify-between text-xs bg-amber-500/10 rounded p-1.5">
@@ -230,7 +230,7 @@ export const LlmGatewayPage: React.FC = () => {
                                     {/* Tool decisions */}
                                     {result.tool_decisions && (
                                         <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4">
-                                            <h3 className="text-sm font-semibold mb-2">🔧 Tool Decisions</h3>
+                                            <h3 className="text-sm font-semibold mb-2">Tool Decisions</h3>
                                             {Object.entries(result.tool_decisions).map(([tool, dec]) => (
                                                 <div key={tool} className={`flex justify-between text-xs rounded p-1.5 mb-1 ${dec === "allow" ? "bg-emerald-500/10" : "bg-red-500/10"}`}>
                                                     <span className="text-slate-300">{tool}</span>
@@ -242,7 +242,7 @@ export const LlmGatewayPage: React.FC = () => {
 
                                     {/* Explanation */}
                                     <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4">
-                                        <h3 className="text-sm font-semibold mb-2">📝 Explanation</h3>
+                                        <h3 className="text-sm font-semibold mb-2">Explanation</h3>
                                         <pre className="text-xs text-slate-300 whitespace-pre-wrap">{result.explanation}</pre>
                                     </div>
                                 </>

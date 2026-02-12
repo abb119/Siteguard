@@ -151,7 +151,7 @@ export const UploadJobPage = () => {
           onClick={() => navigate('/lab')}
           className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-2 transition-colors"
         >
-          <span className="bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">🚀</span>
+          <span className="bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20 text-emerald-400 text-xl font-bold">GO</span>
           ¿Quieres análisis instantáneo? Prueba el modo Real-Time Streaming (GPU)
         </button>
       </div>

@@ -448,7 +448,7 @@ export const SafeDrivingPage: React.FC = () => {
                 <div className="grid lg:grid-cols-2 gap-6 mb-6">
                     <div>
                         <CameraFeed
-                            title="🚗 Cámara Frontal"
+                            title="Cámara Frontal"
                             wsUrl={`${wsBaseUrl}/ws/front-cam-stream`}
                             onResult={(r) => setFrontResult(r as FrontCamResult)}
                             accentColor="bg-blue-600"
@@ -463,7 +463,7 @@ export const SafeDrivingPage: React.FC = () => {
                     </div>
                     <div>
                         <CameraFeed
-                            title="🔙 Cámara Trasera"
+                            title="Cámara Trasera"
                             wsUrl={`${wsBaseUrl}/ws/rear-cam-stream`}
                             onResult={(r) => setRearResult(r as RearCamResult)}
                             accentColor="bg-orange-600"

@@ -104,7 +104,7 @@ export const HoneytokensPage: React.FC = () => {
             <div className="p-4 md:p-8">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold mb-1">🍯 Honeytokens & Deception</h1>
+                        <h1 className="text-2xl md:text-3xl font-bold mb-1 flex items-center gap-3"><Key size={28} className="text-amber-400" /> Honeytokens & Deception</h1>
                         <p className="text-slate-400 text-sm md:text-base">Deploy decoy credentials and monitor for unauthorized access.</p>
                     </div>
                     <button

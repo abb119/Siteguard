@@ -77,12 +77,12 @@ const StatsPanel: React.FC<{ latestResultRef: React.MutableRefObject<FrameResult
 
       {/* Grid of Items */}
       <div className="grid grid-cols-2 lg:grid-cols-2 gap-3">
-        <StatItem icon="👷" label="Personas" count={stats.counts["person"] || 0} color="text-slate-300" />
-        <StatItem icon="🪖" label="Cascos" count={stats.counts["helmet"] || 0} color="text-blue-400" />
-        <StatItem icon="🦺" label="Chalecos" count={stats.counts["vest"] || 0} color="text-orange-400" />
-        <StatItem icon="🧤" label="Guantes" count={stats.counts["gloves"] || 0} color="text-purple-400" />
-        <StatItem icon="🥽" label="Gafas" count={stats.counts["goggles"] || 0} color="text-cyan-400" />
-        <StatItem icon="👢" label="Botas" count={stats.counts["boots"] || 0} color="text-lime-400" />
+        <StatItem icon="P" label="Personas" count={stats.counts["person"] || 0} color="text-slate-300" />
+        <StatItem icon="H" label="Cascos" count={stats.counts["helmet"] || 0} color="text-blue-400" />
+        <StatItem icon="V" label="Chalecos" count={stats.counts["vest"] || 0} color="text-orange-400" />
+        <StatItem icon="G" label="Guantes" count={stats.counts["gloves"] || 0} color="text-purple-400" />
+        <StatItem icon="O" label="Gafas" count={stats.counts["goggles"] || 0} color="text-cyan-400" />
+        <StatItem icon="B" label="Botas" count={stats.counts["boots"] || 0} color="text-lime-400" />
       </div>
     </div>
   );

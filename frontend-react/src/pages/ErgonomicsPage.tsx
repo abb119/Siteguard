@@ -519,7 +519,7 @@ export const ErgonomicsPage: React.FC = () => {
                     {/* Video Feed */}
                     <div className="lg:col-span-2 bg-slate-800 rounded-xl overflow-hidden">
                         <div className="px-4 py-2 bg-green-600/30 flex items-center justify-between">
-                            <span className="font-semibold">📹 Cámara</span>
+                            <span className="font-semibold">Cámara</span>
                             <div className="flex items-center gap-4">
                                 <button
                                     onClick={() => setShowGuide(!showGuide)}
