@@ -473,7 +473,7 @@ async def websocket_driver_stream_v2(websocket: WebSocket, db: AsyncSession = De
     await websocket.accept()
     await websocket.send_json({"type": "ready", "version": 2})
 
-    from app.app.services.dms_realtime import DmsSession
+    from app.app.services.dms_realtime import DmsSession, DmsConfig
     from app.app.services.driver_event_service import DriverEventRecorder
 
     session = DmsSession()
@@ -499,6 +499,14 @@ async def websocket_driver_stream_v2(websocket: WebSocket, db: AsyncSession = De
                 payload = json.loads(message)
             except json.JSONDecodeError:
                 await websocket.send_json({"type": "error", "message": "Invalid JSON payload"})
+                continue
+
+            # Live config override (sent by the client on connect / on change)
+            if payload.get("type") == "config":
+                session.close()
+                session = DmsSession(DmsConfig.from_overrides(payload.get("config") or {}))
+                recorder._prev_active = set()
+                await websocket.send_json({"type": "config_ack"})
                 continue
 
             image_b64 = payload.get("image")

@@ -72,6 +72,31 @@ class DmsConfig:
     # Smoothing factor for EMA (0..1, higher = snappier)
     ema_alpha: float = 0.4
 
+    # Whitelisted, clamped tunables the frontend Settings page may override
+    _BOUNDS = {
+        "calibration_seconds": (2.0, 10.0),
+        "ear_ratio": (0.5, 0.9),
+        "perclos_drowsy": (0.05, 0.4),
+        "microsleep_sec": (0.3, 2.0),
+        "mar_yawn": (0.4, 1.0),
+        "yaw_distract_deg": (8.0, 45.0),
+        "pitch_down_deg": (5.0, 45.0),
+        "distract_min_sec": (0.4, 3.0),
+        "lookdown_min_sec": (0.4, 3.0),
+    }
+
+    @classmethod
+    def from_overrides(cls, overrides: Optional[Dict]) -> "DmsConfig":
+        """Build a config from client overrides, clamped to safe ranges."""
+        cfg = cls()
+        for key, (lo, hi) in cls._BOUNDS.items():
+            if overrides and key in overrides:
+                try:
+                    setattr(cfg, key, max(lo, min(hi, float(overrides[key]))))
+                except (TypeError, ValueError):
+                    pass
+        return cfg
+
 
 # ── Hysteresis helper ──────────────────────────────────────────────────────
 class _SustainedFlag:

@@ -4,6 +4,7 @@ import {
     Activity, Gauge, ScanFace, Volume2, VolumeX,
 } from "lucide-react";
 import { getSessionId } from "../utils/session";
+import { loadDmsConfig } from "../utils/dmsConfig";
 
 type DmsAlert = { type: string; severity: string; message: string };
 
@@ -261,6 +262,12 @@ export const DriverVideoFeed: React.FC = () => {
 
         ws.onopen = () => {
             setWsStatus("Conectado");
+            // Push the user's tuned thresholds before streaming frames
+            try {
+                ws.send(JSON.stringify({ type: "config", config: loadDmsConfig() }));
+            } catch {
+                /* ignore */
+            }
             processLoop();
         };
 
