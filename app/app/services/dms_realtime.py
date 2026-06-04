@@ -72,6 +72,12 @@ class DmsConfig:
     # Smoothing factor for EMA (0..1, higher = snappier)
     ema_alpha: float = 0.4
 
+    # Robustness
+    low_light_brightness: float = 55.0   # mean gray below this → enhance (CLAHE)
+    blocked_brightness: float = 16.0     # near-black frame (lens covered / no signal)
+    blocked_detail_std: float = 6.0      # near-uniform frame (lens covered)
+    blocked_min_sec: float = 1.5
+
     # Whitelisted, clamped tunables the frontend Settings page may override
     _BOUNDS = {
         "calibration_seconds": (2.0, 10.0),
@@ -185,6 +191,7 @@ class DmsSession:
         self._sm_lookdown = _SustainedFlag(self.cfg.lookdown_min_sec, self.cfg.alert_release_sec)
         self._sm_drinking = _SustainedFlag(self.cfg.drinking_min_sec, self.cfg.alert_release_sec)
         self._sm_noface = _SustainedFlag(2.0, 1.0)
+        self._sm_blocked = _SustainedFlag(self.cfg.blocked_min_sec, 0.5)
 
         # Yawn event counter (rising edge)
         self._was_yawning = False
@@ -192,12 +199,28 @@ class DmsSession:
 
         self.fatigue_score: float = 0.0
 
+        # Robustness state
+        self.eye_reliable: bool = True   # False ≈ sunglasses / occluded eyes
+        self.low_light: bool = False
+
     # ── Public API ─────────────────────────────────────────────────────────
     def process(self, frame_bgr, t: float, objects: Optional[List[Dict]] = None) -> Dict:
         if self.start_ts is None:
             self.start_ts = t
 
-        metrics = self._extract(frame_bgr)
+        # Frame quality — detect a covered/black lens before anything else
+        gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
+        brightness = float(gray.mean())
+        detail = float(gray.std())
+        blocked_cond = brightness < self.cfg.blocked_brightness or detail < self.cfg.blocked_detail_std
+        if self._sm_blocked.update(blocked_cond, t):
+            return self._blocked_result()
+
+        # Low-light → enhance a working copy so FaceMesh still finds the face
+        self.low_light = brightness < self.cfg.low_light_brightness
+        work = self._enhance_low_light(frame_bgr) if self.low_light else frame_bgr
+
+        metrics = self._extract(work)
         face_found = self._sm_noface_inverse(metrics.face_found, t)
 
         # EMA smoothing on available metrics
@@ -227,9 +250,13 @@ class DmsSession:
             for o in (objects or [])
         )
 
-        # Conditions
-        drowsy_cond = self.calibrated and perclos >= self.cfg.perclos_drowsy
-        microsleep_cond = self._closed_since is not None and (t - self._closed_since) >= self.cfg.microsleep_sec
+        # Conditions (EAR-based ones suppressed when eye tracking isn't reliable)
+        drowsy_cond = self.eye_reliable and self.calibrated and perclos >= self.cfg.perclos_drowsy
+        microsleep_cond = (
+            self.eye_reliable
+            and self._closed_since is not None
+            and (t - self._closed_since) >= self.cfg.microsleep_sec
+        )
         yawn_cond = metrics.mar is not None and metrics.mar >= self.cfg.mar_yawn
         distract_cond = self._distracted(metrics)
         lookdown_cond = (
@@ -265,6 +292,8 @@ class DmsSession:
             a_lookdown=a_lookdown,
             a_drinking=a_drinking,
             phone_detected=phone_detected,
+            eye_reliable=self.eye_reliable,
+            low_light=self.low_light,
         )
 
     @staticmethod
@@ -285,6 +314,48 @@ class DmsSession:
             self._mesh.close()
         except Exception:
             pass
+
+    # ── Robustness helpers ─────────────────────────────────────────────────
+    @staticmethod
+    def _enhance_low_light(frame_bgr):
+        """CLAHE on the luma channel so FaceMesh still works in the dark."""
+        try:
+            yuv = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2YUV)
+            clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
+            yuv[:, :, 0] = clahe.apply(yuv[:, :, 0])
+            return cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
+        except Exception:
+            return frame_bgr
+
+    def _blocked_result(self) -> Dict:
+        """Minimal result when the lens is covered/black — analysis paused."""
+        return {
+            "drowsiness": "—",
+            "drowsiness_confidence": 0.0,
+            "distractions": [],
+            "is_alert": False,
+            "risk_level": "medium",
+            "detections": [],
+            "calibrating": False,
+            "face_found": False,
+            "eyes_closed": False,
+            "perclos": 0.0,
+            "microsleep": False,
+            "fatigue_score": round(self.fatigue_score, 1),
+            "blink_count": self._blink_count,
+            "microsleep_count": self._microsleep_count,
+            "yawn_count": self._yawn_count,
+            "head_pose": {"yaw": None, "pitch": None, "roll": None},
+            "ear": None,
+            "ear_threshold": round(self.ear_threshold, 4),
+            "low_light": False,
+            "camera_blocked": True,
+            "eye_reliable": self.eye_reliable,
+            "alerts": [{
+                "type": "CAMERA_BLOCKED", "severity": "high",
+                "message": "Cámara bloqueada u oscura",
+            }],
+        }
 
     # ── Internals ──────────────────────────────────────────────────────────
     def _ema(self, prev: Optional[float], value: float) -> float:
@@ -353,7 +424,10 @@ class DmsSession:
                     self.baseline_ear * self.cfg.ear_ratio,
                 )
             else:
+                # Never saw open eyes during calibration → eyes likely occluded
+                # (sunglasses / heavy glare). Don't trust EAR-based alerts.
                 self.ear_threshold = self.cfg.ear_absolute_fallback
+                self.eye_reliable = False
             self.calibrated = True
             return False
         return True
@@ -381,6 +455,7 @@ class DmsSession:
                     self._microsleep_count += 1
                 elif dur >= 0.05:
                     self._blink_count += 1
+                    self.eye_reliable = True  # a real blink proves the eyes track
             self._closed_since = None
         self._was_closed = eye_closed
 
@@ -420,6 +495,8 @@ class DmsSession:
         perclos = k["perclos"]
         calibrating = k["calibrating"]
         face_found = k["face_found"]
+        eye_reliable = k["eye_reliable"]
+        low_light = k["low_light"]
 
         alerts: List[Dict] = []
         if a_micro:
@@ -442,6 +519,9 @@ class DmsSession:
                            "message": "Bebiendo al volante"})
         if a_yawn:
             alerts.append({"type": "YAWN", "severity": "medium", "message": "Bostezo"})
+        if face_found and not eye_reliable:
+            alerts.append({"type": "EYE_DEGRADED", "severity": "medium",
+                           "message": "Detección ocular degradada (¿gafas de sol?)"})
         if not face_found and not calibrating:
             alerts.append({"type": "NO_FACE", "severity": "medium",
                            "message": "Conductor no detectado"})
@@ -517,6 +597,9 @@ class DmsSession:
             },
             "ear": round(self._ear_ema, 4) if self._ear_ema is not None else None,
             "ear_threshold": round(self.ear_threshold, 4),
+            "low_light": low_light,
+            "camera_blocked": False,
+            "eye_reliable": eye_reliable,
             "alerts": alerts,
         }
 

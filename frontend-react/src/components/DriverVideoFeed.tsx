@@ -33,6 +33,9 @@ type DriverResult = {
     head_pose?: { yaw: number | null; pitch: number | null; roll?: number | null };
     ear?: number | null;
     ear_threshold?: number;
+    low_light?: boolean;
+    camera_blocked?: boolean;
+    eye_reliable?: boolean;
     alerts?: DmsAlert[];
 };
 
@@ -54,6 +57,9 @@ const DEFAULT_STATUS: DriverResult = {
     microsleep_count: 0,
     yawn_count: 0,
     head_pose: { yaw: null, pitch: null },
+    low_light: false,
+    camera_blocked: false,
+    eye_reliable: true,
     alerts: [],
 };
 
@@ -373,22 +379,30 @@ export const DriverVideoFeed: React.FC = () => {
             if (result) {
                 drawDetections(ctx, result);
 
-                // Critical microsleep overlay
-                if (result.microsleep) {
-                    ctx.fillStyle = "rgba(239,68,68,0.28)";
+                // Status overlays (priority: blocked > microsleep > calibrating)
+                if (result.camera_blocked) {
+                    ctx.fillStyle = "rgba(10,10,11,0.82)";
+                    ctx.fillRect(0, 0, W, H);
+                    ctx.fillStyle = "#ff3b30";
+                    ctx.font = "bold 26px 'IBM Plex Mono', monospace";
+                    ctx.textAlign = "center";
+                    ctx.fillText("CÁMARA BLOQUEADA", W / 2, H / 2);
+                    ctx.textAlign = "left";
+                } else if (result.microsleep) {
+                    ctx.fillStyle = "rgba(255,59,48,0.28)";
                     ctx.fillRect(0, 0, W, H);
                     ctx.fillStyle = "#fff";
-                    ctx.font = "bold 38px Inter, sans-serif";
+                    ctx.font = "bold 34px 'IBM Plex Mono', monospace";
                     ctx.textAlign = "center";
-                    ctx.fillText("⚠️ ¡MICROSUEÑO!", W / 2, H / 2);
+                    ctx.fillText("⚠ MICROSUEÑO", W / 2, H / 2);
                     ctx.textAlign = "left";
                 } else if (result.calibrating) {
-                    ctx.fillStyle = "rgba(15,23,42,0.55)";
+                    ctx.fillStyle = "rgba(10,10,11,0.55)";
                     ctx.fillRect(0, 0, W, H);
-                    ctx.fillStyle = "#fbbf24";
-                    ctx.font = "bold 24px Inter, sans-serif";
+                    ctx.fillStyle = "#ffb000";
+                    ctx.font = "bold 22px 'IBM Plex Mono', monospace";
                     ctx.textAlign = "center";
-                    ctx.fillText("Calibrando… mira al frente", W / 2, H / 2);
+                    ctx.fillText("CALIBRANDO — mira al frente", W / 2, H / 2);
                     ctx.textAlign = "left";
                 }
             }
@@ -410,6 +424,8 @@ export const DriverVideoFeed: React.FC = () => {
     const eyesOffRoad = yaw !== null && Math.abs(yaw) > 18;
     const lookingDown = pitch !== null && pitch > 15;
     const attentionBad = eyesOffRoad || lookingDown || !status.face_found;
+    const lowLight = status.low_light === true;
+    const eyeDegraded = status.eye_reliable === false;
 
     return (
         <div className="space-y-6">
@@ -563,6 +579,25 @@ export const DriverVideoFeed: React.FC = () => {
                                 Giro: {yaw !== null ? `${yaw.toFixed(0)}°` : "—"} · Inclinación: {pitch !== null ? `${pitch.toFixed(0)}°` : "—"}
                             </p>
                         )}
+                    </div>
+
+                    {/* Environment / robustness */}
+                    <div className="bg-slate-800 rounded-xl p-4">
+                        <div className="hud-label mb-3">Entorno</div>
+                        <div className="space-y-2 font-mono text-sm">
+                            <div className="flex items-center justify-between">
+                                <span className="hud-label">Luz</span>
+                                <span className={lowLight ? "text-amber-400" : "text-phosphor-400"}>
+                                    {lowLight ? "Baja · realce ON" : "OK"}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="hud-label">Seguimiento ocular</span>
+                                <span className={eyeDegraded ? "text-alarm-400" : "text-phosphor-400"}>
+                                    {eyeDegraded ? "Degradado" : "Fiable"}
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Distractions */}
