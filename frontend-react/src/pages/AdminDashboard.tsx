@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Check, ShieldAlert, Calendar } from "lucide-react";
+import { Check, ShieldAlert, Calendar, ShieldCheck } from "lucide-react";
 import { getSessionId } from "../utils/session";
+import { ServiceLayout } from "../components/ServiceLayout";
+import { PPENavItems } from "./PPEServicePage";
+import { apiFetch, staticUrl } from "../lib/api";
+
+const API_HOST = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 type Violation = {
     id: number;
@@ -20,11 +25,8 @@ export const AdminDashboard: React.FC = () => {
 
     const fetchViolations = async () => {
         try {
-            const res = await fetch(`http://localhost:8000/violations?limit=100&session_id=${getSessionId()}`);
-            if (res.ok) {
-                const data = await res.json();
-                setViolations(data);
-            }
+            const res = await apiFetch(`${API_HOST}/violations?limit=100&session_id=${getSessionId()}`);
+            if (res.ok) setViolations(await res.json());
         } catch (e) {
             console.error(e);
         } finally {
@@ -38,13 +40,12 @@ export const AdminDashboard: React.FC = () => {
 
     const handleReview = async (id: number, isFalsePositive: boolean) => {
         try {
-            const res = await fetch(`http://localhost:8000/violations/${id}/review`, {
+            const res = await apiFetch(`${API_HOST}/violations/${id}/review`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ is_false_positive: isFalsePositive }),
             });
             if (res.ok) {
-                // Optimistic update
                 setViolations((prev) =>
                     prev.map((v) =>
                         v.id === id ? { ...v, is_reviewed: true, is_false_positive: isFalsePositive } : v
@@ -63,81 +64,79 @@ export const AdminDashboard: React.FC = () => {
     });
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-4 md:p-8">
-            <div className="max-w-7xl mx-auto">
-                <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+        <ServiceLayout
+            serviceName="Detección de EPP"
+            serviceIcon={<ShieldCheck size={22} />}
+            accentColor="amber"
+            navItems={PPENavItems}
+        >
+            <div className="p-4 md:p-8">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 border-b border-hud-line pb-5 mb-8">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
-                            Panel de Validación de Seguridad
-                        </h1>
-                        <p className="text-slate-400 mt-2">
-                            Revisar y validar infracciones detectadas por AI
-                        </p>
+                        <span className="hud-label">▸ Validación de incidentes</span>
+                        <h1 className="font-mono text-2xl md:text-3xl font-bold tracking-tight uppercase mt-2">Historial EPP</h1>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-px bg-hud-line border border-hud-line">
                         {(["pending", "reviewed", "all"] as const).map((f) => (
                             <button
                                 key={f}
                                 onClick={() => setFilter(f)}
-                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === f
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                                className={`px-4 py-2 font-mono uppercase tracking-widest text-xs transition-colors ${filter === f
+                                    ? "bg-amber-400 text-hud-bg"
+                                    : "bg-hud-panel text-hud-dim hover:text-amber-400"
                                     }`}
                             >
-                                {f === "pending"
-                                    ? "Pendientes"
-                                    : f === "reviewed"
-                                        ? "Revisados"
-                                        : "Todos"}
+                                {f === "pending" ? "Pendientes" : f === "reviewed" ? "Revisados" : "Todos"}
                             </button>
                         ))}
                     </div>
-                </header>
+                </div>
 
                 {loading ? (
-                    <div className="text-center py-20 text-slate-500">Cargando incidentes...</div>
+                    <div className="text-center py-20 hud-label">Cargando incidentes…</div>
                 ) : filteredViolations.length === 0 ? (
-                    <div className="text-center py-20 bg-slate-900/50 rounded-xl border border-dashed border-slate-700">
-                        <ShieldAlert className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-                        <p className="text-lg text-slate-400">No hay infracciones {filter === "pending" ? "pendientes" : "encontradas"}</p>
+                    <div className="hud-panel hud-corners text-center py-20">
+                        <ShieldAlert className="w-12 h-12 text-hud-dim mx-auto mb-4" />
+                        <p className="hud-label">No hay infracciones {filter === "pending" ? "pendientes" : "encontradas"}</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px bg-hud-line border border-hud-line">
                         {filteredViolations.map((v) => (
                             <div
                                 key={v.id}
-                                className={`group relative bg-slate-900 rounded-xl border transition-all ${v.is_reviewed
+                                className={`group relative bg-hud-panel border-l-2 transition-colors ${v.is_reviewed
                                     ? v.is_false_positive
-                                        ? "border-green-500/30 opacity-75"
-                                        : "border-red-500/30 opacity-75"
-                                    : "border-slate-700 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10"
+                                        ? "border-phosphor-400/50 opacity-70"
+                                        : "border-alarm-400/50 opacity-70"
+                                    : "border-transparent hover:bg-hud-bg"
                                     }`}
                             >
-                                <div className="aspect-video relative overflow-hidden rounded-t-xl bg-black">
+                                <div className="aspect-video relative overflow-hidden bg-hud-bg">
                                     <img
-                                        src={`http://localhost:8000${v.image_path}`}
+                                        src={staticUrl(v.image_path)}
                                         alt={v.violation_type}
                                         className="w-full h-full object-contain"
                                         loading="lazy"
                                     />
-                                    <div className="absolute top-2 right-2 px-2 py-1 rounded bg-black/70 text-xs font-mono border border-white/10">
-                                        {Math.round(v.confidence * 100)}% Conf
+                                    <div className="absolute top-2 right-2 px-2 py-1 bg-hud-bg/80 text-xs font-mono tnum border border-hud-line">
+                                        {Math.round(v.confidence * 100)}%
                                     </div>
                                 </div>
 
                                 <div className="p-4">
                                     <div className="flex justify-between items-start mb-2">
                                         <span
-                                            className={`px-2 py-1 rounded text-xs font-bold ${v.violation_type === "NO_HELMET"
-                                                ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                                                : "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                                            className={`px-2 py-1 border font-mono text-xs uppercase tracking-widest ${v.violation_type === "NO_HELMET"
+                                                ? "border-alarm-400/50 text-alarm-400"
+                                                : "border-amber-400/50 text-amber-400"
                                                 }`}
                                         >
                                             {v.violation_type.replace("NO_", "SIN ")}
                                         </span>
-                                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                                        <span className="text-xs text-hud-dim font-mono flex items-center gap-1 tnum">
                                             <Calendar className="w-3 h-3" />
-                                            {new Date(v.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {new Date(v.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                                         </span>
                                     </div>
 
@@ -145,23 +144,22 @@ export const AdminDashboard: React.FC = () => {
                                         <div className="flex gap-2 mt-4">
                                             <button
                                                 onClick={() => handleReview(v.id, false)}
-                                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm font-medium transition-colors border border-red-500/20"
+                                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border border-alarm-400/40 text-alarm-400 hover:bg-alarm-400/10 text-xs font-mono uppercase tracking-widest transition-colors"
                                             >
                                                 <ShieldAlert className="w-4 h-4" />
                                                 Confirmar
                                             </button>
                                             <button
                                                 onClick={() => handleReview(v.id, true)}
-                                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 rounded-lg text-sm font-medium transition-colors border border-green-500/20"
+                                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border border-phosphor-400/40 text-phosphor-400 hover:bg-phosphor-400/10 text-xs font-mono uppercase tracking-widest transition-colors"
                                             >
                                                 <Check className="w-4 h-4" />
                                                 Falso
                                             </button>
                                         </div>
                                     ) : (
-                                        <div className={`mt-4 text-center text-sm font-medium py-2 rounded-lg ${v.is_false_positive ? "text-green-400 bg-green-500/5" : "text-red-400 bg-red-500/5"
-                                            }`}>
-                                            {v.is_false_positive ? "Marcado como Falso Positivo" : "Infracción Confirmada"}
+                                        <div className={`mt-4 text-center text-xs font-mono uppercase tracking-widest py-2 ${v.is_false_positive ? "text-phosphor-400" : "text-alarm-400"}`}>
+                                            {v.is_false_positive ? "Falso positivo" : "Infracción confirmada"}
                                         </div>
                                     )}
                                 </div>
@@ -170,6 +168,6 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </ServiceLayout>
     );
 };

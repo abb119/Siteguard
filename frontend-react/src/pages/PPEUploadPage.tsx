@@ -13,7 +13,10 @@ export const PPEUploadPage: React.FC = () => {
             navItems={PPENavItems}
         >
             <div className="p-4 md:p-8">
-                <h1 className="text-2xl md:text-3xl font-bold mb-6">Subir Video para Análisis</h1>
+                <div className="border-b border-hud-line pb-5 mb-6">
+                    <span className="hud-label">▸ Análisis de vídeo</span>
+                    <h1 className="font-mono text-2xl md:text-3xl font-bold tracking-tight uppercase mt-2">Subir Vídeo</h1>
+                </div>
                 <VideoFeed initialMode="file" />
             </div>
         </ServiceLayout>

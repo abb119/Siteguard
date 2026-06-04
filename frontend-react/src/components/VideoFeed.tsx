@@ -59,7 +59,7 @@ const StatsPanel: React.FC<{ latestResultRef: React.MutableRefObject<FrameResult
   if (!activeMode) return null;
 
   return (
-    <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 backdrop-blur space-y-4">
+    <div className="hud-panel p-4 space-y-4">
       {/* High Level Status */}
       <div className={clsx("p-3 rounded-lg border flex items-center justify-between",
         stats.compliance === 100 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
@@ -67,9 +67,9 @@ const StatsPanel: React.FC<{ latestResultRef: React.MutableRefObject<FrameResult
             "bg-red-500/10 border-red-500/30 text-red-400"
       )}>
         <div className="flex items-center gap-3">
-          <div className="text-2xl font-bold">{stats.compliance}%</div>
-          <div className="text-xs font-semibold uppercase tracking-wider">
-            {stats.compliance === 100 ? "Seguro" : "Riesgo Detectado"}
+          <div className="text-2xl font-mono font-bold tnum">{stats.compliance}%</div>
+          <div className="text-xs font-mono uppercase tracking-widest">
+            {stats.compliance === 100 ? "Seguro" : "Riesgo detectado"}
           </div>
         </div>
         {stats.compliance < 100 && <AlertTriangle size={24} />}
@@ -89,12 +89,12 @@ const StatsPanel: React.FC<{ latestResultRef: React.MutableRefObject<FrameResult
 };
 
 const StatItem = ({ icon, label, count, color }: { icon: string, label: string, count: number, color: string }) => (
-  <div className="bg-slate-950/50 p-2 rounded-lg flex items-center justify-between border border-slate-800/50">
+  <div className="border border-hud-line p-2 flex items-center justify-between">
     <div className="flex items-center gap-2">
-      <span>{icon}</span>
-      <span className="text-xs text-slate-400 font-medium">{label}</span>
+      <span className="font-mono text-hud-dim text-xs">{icon}</span>
+      <span className="text-xs text-hud-dim font-mono uppercase tracking-wider">{label}</span>
     </div>
-    <span className={clsx("text-sm font-bold", color)}>{count}</span>
+    <span className={clsx("font-mono font-bold tnum", color)}>{count}</span>
   </div>
 );
 
@@ -393,12 +393,12 @@ export const VideoFeed: React.FC<{ initialMode?: "webcam" | "file" }> = ({ initi
         }
       } else {
         // Show loading screen until first analyzed frame arrives
-        ctx.fillStyle = "#020617";
+        ctx.fillStyle = "#0a0a0b";
         ctx.fillRect(0, 0, displayCanvasRef.current.width, displayCanvasRef.current.height);
-        ctx.fillStyle = "#64748b";
-        ctx.font = "16px sans-serif";
+        ctx.fillStyle = "#86847a";
+        ctx.font = "14px 'IBM Plex Mono', monospace";
         ctx.textAlign = "center";
-        ctx.fillText("Analizando...", displayCanvasRef.current.width / 2, displayCanvasRef.current.height / 2);
+        ctx.fillText("ANALIZANDO…", displayCanvasRef.current.width / 2, displayCanvasRef.current.height / 2);
       }
 
       const result = latestResultRef.current;
@@ -426,13 +426,13 @@ export const VideoFeed: React.FC<{ initialMode?: "webcam" | "file" }> = ({ initi
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/80 p-3 rounded-xl border border-slate-800 backdrop-blur">
+      <div className="flex flex-wrap items-center justify-between gap-4 hud-panel p-3">
         <div className="flex gap-2">
           <button
             onClick={startWebcam}
             className={clsx(
-              "flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all",
-              activeMode === "webcam" ? "bg-emerald-500 text-white" : "bg-slate-800 text-slate-400 hover:text-white"
+              "flex items-center gap-2 px-4 py-2 font-mono uppercase tracking-widest text-xs transition-colors",
+              activeMode === "webcam" ? "bg-amber-400 text-hud-bg" : "border border-hud-line text-hud-dim hover:text-amber-400 hover:border-amber-400"
             )}
           >
             <Camera size={16} /> Webcam
@@ -440,31 +440,32 @@ export const VideoFeed: React.FC<{ initialMode?: "webcam" | "file" }> = ({ initi
           <button
             onClick={() => fileInputRef.current?.click()}
             className={clsx(
-              "flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all",
-              activeMode === "file" ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"
+              "flex items-center gap-2 px-4 py-2 font-mono uppercase tracking-widest text-xs transition-colors",
+              activeMode === "file" ? "bg-amber-400 text-hud-bg" : "border border-hud-line text-hud-dim hover:text-amber-400 hover:border-amber-400"
             )}
           >
-            <Upload size={16} /> Subir Video
+            <Upload size={16} /> Subir Vídeo
           </button>
           <input type="file" ref={fileInputRef} className="hidden" accept="video/*" onChange={handleFileSelect} />
         </div>
 
         {activeMode && (
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="font-mono text-xs text-blue-400 font-bold bg-blue-900/30 px-3 py-1 rounded border border-blue-500/30">
+          <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
+            <span className="flex items-center gap-2 px-3 py-1 border border-hud-line text-hud-dim">
+              <span className={`hud-dot inline-block ${wsStatus === "Conectado" ? "bg-phosphor-400" : "bg-hud-dim"}`} />
               {wsStatus}
-            </div>
-            <div className="font-mono text-xs text-emerald-400 font-bold bg-emerald-900/30 px-3 py-1 rounded border border-emerald-500/30">
-              {fps} fps · {latencyMs.toFixed(1)} ms
-            </div>
-            <button onClick={togglePause} className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-white">
-              {isPaused ? <Play size={20} fill="currentColor" /> : <Pause size={20} fill="currentColor" />}
+            </span>
+            <span className="px-3 py-1 border border-hud-line text-hud-dim tnum">
+              {fps} FPS · {latencyMs.toFixed(1)} MS
+            </span>
+            <button onClick={togglePause} className="p-2 border border-hud-line hover:border-amber-400 text-hud-bone transition-colors">
+              {isPaused ? <Play size={18} fill="currentColor" /> : <Pause size={18} fill="currentColor" />}
             </button>
             <button
               onClick={stopEverything}
-              className="p-2 rounded-full bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white transition-colors"
+              className="p-2 border border-hud-line text-alarm-400 hover:border-alarm-400 transition-colors"
             >
-              <StopCircle size={20} />
+              <StopCircle size={18} />
             </button>
           </div>
         )}
@@ -473,11 +474,11 @@ export const VideoFeed: React.FC<{ initialMode?: "webcam" | "file" }> = ({ initi
       {/* Main Grid Layout */}
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Video Area */}
-        <div className="lg:col-span-2 relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-800 flex items-center justify-center group">
+        <div className="lg:col-span-2 relative w-full aspect-video bg-hud-bg hud-panel hud-corners overflow-hidden flex items-center justify-center group">
           {!activeMode && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600">
-              <Video size={64} className="opacity-20 mb-4" />
-              <p className="font-semibold text-lg">Selecciona una fuente de video</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-hud-dim">
+              <Video size={56} className="opacity-20 mb-4" />
+              <p className="hud-label">Selecciona una fuente de vídeo</p>
             </div>
           )}
 
@@ -494,10 +495,10 @@ export const VideoFeed: React.FC<{ initialMode?: "webcam" | "file" }> = ({ initi
 
               {/* Warning Overlay for active violation */}
               {violationLog.length > 0 && violationLog[0].timestamp === latestResultRef.current?.timestamp && (
-                <div className="absolute top-4 right-4 animate-bounce">
-                  <div className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg flex items-center gap-2">
-                    <AlertTriangle className="fill-white" size={20} />
-                    VIOLACIÓN DETECTADA
+                <div className="absolute top-4 right-4 animate-pulse">
+                  <div className="bg-alarm-400 text-hud-bg px-4 py-2 font-mono uppercase tracking-widest text-xs flex items-center gap-2">
+                    <AlertTriangle size={16} />
+                    Violación detectada
                   </div>
                 </div>
               )}
@@ -511,28 +512,28 @@ export const VideoFeed: React.FC<{ initialMode?: "webcam" | "file" }> = ({ initi
           <StatsPanel latestResultRef={latestResultRef} activeMode={activeMode} />
 
           {/* Violation Log */}
-          <div className="bg-slate-900/80 rounded-xl border border-slate-800/50 flex flex-col h-64 backdrop-blur">
-            <div className="p-3 border-b border-slate-800/50 flex items-center gap-2">
-              <div className="w-1 h-4 bg-orange-500 rounded-full" />
-              <h3 className="font-semibold text-sm text-slate-200">Registro de Violaciones</h3>
+          <div className="hud-panel flex flex-col h-64">
+            <div className="p-3 border-b border-hud-line flex items-center gap-2">
+              <div className="w-1 h-4 bg-amber-400" />
+              <h3 className="hud-label">Registro de violaciones</h3>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
               {violationLog.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs">
+                <div className="h-full flex flex-col items-center justify-center text-hud-dim text-xs">
                   <span className="text-2xl mb-2 opacity-20">—</span>
-                  Sin violaciones recientes
+                  <span className="hud-label">Sin violaciones recientes</span>
                 </div>
               ) : (
                 violationLog.map((log) => (
                   <div
                     key={log.id}
-                    className="text-xs bg-slate-950/50 p-2 rounded border border-slate-700/50 flex items-center justify-between group hover:border-orange-500/30 transition-colors"
+                    className="text-xs border border-hud-line p-2 flex items-center justify-between group hover:border-amber-400/40 transition-colors"
                   >
                     <div className="flex items-center gap-2">
-                      <AlertTriangle className="text-orange-500" size={12} />
-                      <span className="text-slate-300 font-medium">{log.label}</span>
+                      <AlertTriangle className="text-amber-400" size={12} />
+                      <span className="text-hud-bone font-mono">{log.label}</span>
                     </div>
-                    <span className="text-slate-500 group-hover:text-slate-400">
+                    <span className="text-hud-dim font-mono tnum group-hover:text-hud-bone">
                       {new Date(log.timestamp || Date.now()).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </span>
                   </div>
@@ -653,9 +654,9 @@ function drawDetections(ctx: CanvasRenderingContext2D, detections: FrameResult["
     // Prepare label
     const label = `${style.icon} ${className}`;
     const confText = `${Math.round(confidence * 100)}%`;
-    ctx.font = "bold 12px 'Inter', 'Space Grotesk', sans-serif";
+    ctx.font = "bold 12px 'IBM Plex Mono', monospace";
     const labelWidth = ctx.measureText(label).width;
-    ctx.font = "10px 'Inter', sans-serif";
+    ctx.font = "10px 'IBM Plex Mono', monospace";
     const confWidth = ctx.measureText(confText).width;
 
     const totalWidth = labelWidth + confWidth + 20;
@@ -680,12 +681,12 @@ function drawDetections(ctx: CanvasRenderingContext2D, detections: FrameResult["
 
     // Draw label text
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 12px 'Inter', 'Space Grotesk', sans-serif";
+    ctx.font = "bold 12px 'IBM Plex Mono', monospace";
     ctx.fillText(label, x1 + 6, labelY + 15);
 
     // Draw confidence percentage (slightly dimmer)
     ctx.fillStyle = "rgba(255,255,255,0.8)";
-    ctx.font = "10px 'Inter', sans-serif";
+    ctx.font = "10px 'IBM Plex Mono', monospace";
     ctx.fillText(confText, x1 + labelWidth + 12, labelY + 14);
   });
 

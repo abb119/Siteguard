@@ -19,10 +19,11 @@ export const PPEServicePage: React.FC = () => {
             navItems={PPENavItems}
         >
             <div className="p-4 md:p-8">
-                <div className="mb-6">
-                    <h1 className="text-2xl md:text-3xl font-bold mb-2">Detección de EPP en Tiempo Real</h1>
-                    <p className="text-slate-400">
-                        Monitorea el uso correcto de Equipos de Protección Personal: cascos, chalecos, guantes, gafas y más.
+                <div className="border-b border-hud-line pb-5 mb-6">
+                    <span className="hud-label">▸ Visión por computador · Tiempo real</span>
+                    <h1 className="font-mono text-2xl md:text-3xl font-bold tracking-tight uppercase mt-2">Detección de EPP</h1>
+                    <p className="text-hud-dim text-sm mt-2 max-w-2xl">
+                        Verifica el uso correcto de Equipos de Protección Personal: cascos, chalecos, guantes, gafas y más.
                     </p>
                 </div>
 
