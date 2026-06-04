@@ -17,10 +17,11 @@ export const DriverServicePage: React.FC = () => {
             ]}
         >
             <div className="p-4 md:p-8">
-                <div className="mb-6">
-                    <h1 className="text-2xl md:text-3xl font-bold mb-2">Sistema ADAS - Conducción Segura</h1>
-                    <p className="text-slate-400">
-                        Monitoreo en tiempo real de fatiga y distracciones del conductor. Detecta somnolencia, uso de teléfono y más.
+                <div className="border-b border-hud-line pb-5 mb-6">
+                    <span className="hud-label">▸ Monitorización en tiempo real</span>
+                    <h1 className="font-mono text-2xl md:text-3xl font-bold tracking-tight mt-2">MONITOR DE CONDUCTOR</h1>
+                    <p className="text-hud-dim text-sm mt-2 max-w-2xl">
+                        Detección de fatiga, microsueños y distracciones por visión por computador.
                     </p>
                 </div>
 

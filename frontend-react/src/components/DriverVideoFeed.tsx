@@ -413,9 +413,6 @@ export const DriverVideoFeed: React.FC = () => {
         return () => cancelAnimationFrame(renderId);
     }, [activeMode]);
 
-    const getRiskColor = (level: string) =>
-        level === "high" ? "bg-red-500" : level === "medium" ? "bg-orange-500" : "bg-green-500";
-
     const fatigue = status.fatigue_score ?? 0;
     const fatigueColor = fatigue >= 66 ? "text-red-400" : fatigue >= 33 ? "text-orange-400" : "text-green-400";
     const perclosPct = Math.round((status.perclos ?? 0) * 100);
@@ -430,45 +427,46 @@ export const DriverVideoFeed: React.FC = () => {
     return (
         <div className="space-y-6">
             {/* Controls */}
-            <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
                 <button
                     onClick={startWebcam}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 border border-hud-line hover:border-amber-400 hover:text-amber-400 transition-colors font-mono uppercase tracking-widest text-xs"
                 >
-                    <Camera size={18} />
+                    <Camera size={16} />
                     Webcam
                 </button>
                 <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-500 rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-amber-400 text-hud-bg hover:bg-amber-300 transition-colors font-mono uppercase tracking-widest text-xs"
                 >
-                    <Upload size={18} />
-                    Subir Video
+                    <Upload size={16} />
+                    Subir Vídeo
                 </button>
                 <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleFileUpload} />
                 <button
                     onClick={() => setSoundOn((s) => !s)}
                     title={soundOn ? "Silenciar alarma" : "Activar alarma"}
-                    className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 border border-hud-line hover:border-amber-400 transition-colors"
                 >
-                    {soundOn ? <Volume2 size={18} /> : <VolumeX size={18} className="text-slate-500" />}
+                    {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} className="text-hud-dim" />}
                 </button>
-                <div className="flex items-center gap-4 text-sm text-slate-400 sm:ml-auto">
-                    <span className={`px-3 py-1 rounded-full ${wsStatus === "Conectado" ? "bg-green-500/20 text-green-400" : "bg-slate-700"}`}>
+                <div className="flex items-center gap-4 sm:ml-auto font-mono text-xs">
+                    <span className={`flex items-center gap-2 px-3 py-1 border ${wsStatus === "Conectado" ? "border-phosphor-400/40 text-phosphor-400" : "border-hud-line text-hud-dim"}`}>
+                        <span className={`hud-dot inline-block ${wsStatus === "Conectado" ? "bg-phosphor-400" : "bg-hud-dim"}`} />
                         {wsStatus}
                     </span>
-                    <span>{fps} fps · {latencyMs.toFixed(1)} ms</span>
+                    <span className="text-hud-dim tnum">{fps} FPS · {latencyMs.toFixed(1)} MS</span>
                 </div>
             </div>
 
             <div className="grid lg:grid-cols-3 gap-6">
                 {/* Video Feed */}
-                <div className="lg:col-span-2 relative bg-slate-900 rounded-xl overflow-hidden aspect-video">
+                <div className="lg:col-span-2 relative hud-panel hud-corners overflow-hidden aspect-video">
                     <video ref={videoRef} className="hidden" playsInline muted loop />
                     <canvas ref={displayCanvasRef} width={854} height={480} className="w-full h-full object-contain" />
                     {!activeMode && (
-                        <div className="absolute inset-0 flex items-center justify-center text-slate-500">
-                            <p>Selecciona Webcam o sube un video para comenzar</p>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <p className="hud-label">Selecciona webcam o sube un vídeo</p>
                         </div>
                     )}
                 </div>
@@ -483,34 +481,37 @@ export const DriverVideoFeed: React.FC = () => {
                     )}
 
                     {/* Risk Level */}
-                    <div className={`p-4 rounded-xl ${getRiskColor(status.risk_level)} bg-opacity-20 border border-opacity-30 ${getRiskColor(status.risk_level).replace("bg-", "border-")}`}>
-                        <div className="flex items-center gap-3 mb-2">
+                    <div className={`hud-panel p-4 border-l-2 ${status.risk_level === "high" ? "border-alarm-400" : status.risk_level === "medium" ? "border-amber-400" : "border-phosphor-400"}`}>
+                        <div className="flex items-center gap-3 mb-3">
                             {status.is_alert ? (
-                                <CheckCircle className="text-green-400" size={24} />
+                                <CheckCircle className="text-phosphor-400" size={22} />
                             ) : (
-                                <AlertTriangle className="text-red-400" size={24} />
+                                <AlertTriangle className="text-alarm-400" size={22} />
                             )}
-                            <span className="font-bold text-lg">
-                                {status.is_alert ? "Conductor Alerta" : "¡Atención Requerida!"}
+                            <span className="font-mono uppercase tracking-wide text-base">
+                                {status.is_alert ? "Conductor alerta" : "¡Atención requerida!"}
                             </span>
                         </div>
-                        <p className="text-sm text-slate-300">
-                            Nivel de riesgo: <span className="font-semibold capitalize">{status.risk_level}</span>
-                        </p>
+                        <div className="flex items-center justify-between">
+                            <span className="hud-label">Nivel de riesgo</span>
+                            <span className={`font-mono uppercase text-sm tracking-widest ${status.risk_level === "high" ? "text-alarm-400" : status.risk_level === "medium" ? "text-amber-400" : "text-phosphor-400"}`}>
+                                {status.risk_level}
+                            </span>
+                        </div>
                     </div>
 
                     {/* Active alerts */}
                     {(status.alerts?.length ?? 0) > 0 && (
-                        <div className="bg-slate-800 rounded-xl p-4">
+                        <div className="hud-panel p-4">
                             <div className="flex items-center gap-2 mb-3">
                                 <AlertTriangle className="text-amber-400" size={18} />
-                                <span className="font-semibold">Alertas activas</span>
+                                <span className="font-mono uppercase tracking-wide text-sm">Alertas activas</span>
                             </div>
                             <ul className="space-y-2">
                                 {status.alerts!.map((a, i) => (
                                     <li key={i} className="flex items-center gap-2 text-sm">
                                         <span
-                                            className={`w-2 h-2 rounded-full ${a.severity === "critical"
+                                            className={`w-2 h-2 ${a.severity === "critical"
                                                 ? "bg-red-500"
                                                 : a.severity === "high"
                                                     ? "bg-orange-500"
@@ -525,30 +526,30 @@ export const DriverVideoFeed: React.FC = () => {
                     )}
 
                     {/* Fatigue score */}
-                    <div className="bg-slate-800 rounded-xl p-4">
+                    <div className="hud-panel p-4">
                         <div className="flex items-center gap-3 mb-2">
                             <Gauge className={fatigueColor} size={20} />
-                            <span className="font-semibold">Índice de Fatiga</span>
+                            <span className="font-mono uppercase tracking-wide text-sm">Índice de Fatiga</span>
                             <span className={`ml-auto font-bold text-lg ${fatigueColor}`}>{Math.round(fatigue)}</span>
                         </div>
-                        <div className="w-full bg-slate-700 rounded-full h-2.5 overflow-hidden">
+                        <div className="w-full bg-slate-700 h-2.5 overflow-hidden">
                             <div
-                                className={`h-2.5 rounded-full transition-all duration-500 ${fatigue >= 66 ? "bg-red-500" : fatigue >= 33 ? "bg-orange-500" : "bg-green-500"}`}
+                                className={`h-2.5 transition-all duration-500 ${fatigue >= 66 ? "bg-red-500" : fatigue >= 33 ? "bg-orange-500" : "bg-green-500"}`}
                                 style={{ width: `${Math.min(100, fatigue)}%` }}
                             />
                         </div>
                     </div>
 
                     {/* PERCLOS + eyes */}
-                    <div className="bg-slate-800 rounded-xl p-4">
+                    <div className="hud-panel p-4">
                         <div className="flex items-center gap-3 mb-3">
                             {status.eyes_closed ? <EyeOff className="text-red-400" size={20} /> : <Eye className="text-green-400" size={20} />}
-                            <span className="font-semibold">Cierre Ocular (PERCLOS)</span>
+                            <span className="font-mono uppercase tracking-wide text-sm">Cierre Ocular (PERCLOS)</span>
                             <span className="ml-auto text-slate-300 text-sm">{perclosPct}%</span>
                         </div>
-                        <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+                        <div className="w-full bg-slate-700 h-2 overflow-hidden">
                             <div
-                                className={`h-2 rounded-full transition-all ${perclosPct >= 30 ? "bg-red-500" : perclosPct >= 15 ? "bg-orange-500" : "bg-green-500"}`}
+                                className={`h-2 transition-all ${perclosPct >= 30 ? "bg-red-500" : perclosPct >= 15 ? "bg-orange-500" : "bg-green-500"}`}
                                 style={{ width: `${Math.min(100, perclosPct)}%` }}
                             />
                         </div>
@@ -560,10 +561,10 @@ export const DriverVideoFeed: React.FC = () => {
                     </div>
 
                     {/* Head pose / attention */}
-                    <div className="bg-slate-800 rounded-xl p-4">
+                    <div className="hud-panel p-4">
                         <div className="flex items-center gap-3">
                             <Activity className={attentionBad ? "text-red-400" : "text-green-400"} size={20} />
-                            <span className="font-semibold">Atención</span>
+                            <span className="font-mono uppercase tracking-wide text-sm">Atención</span>
                             <span className={`ml-auto text-sm ${attentionBad ? "text-red-400" : "text-green-400"}`}>
                                 {!status.face_found
                                     ? "Sin rostro"
@@ -582,7 +583,7 @@ export const DriverVideoFeed: React.FC = () => {
                     </div>
 
                     {/* Environment / robustness */}
-                    <div className="bg-slate-800 rounded-xl p-4">
+                    <div className="hud-panel p-4">
                         <div className="hud-label mb-3">Entorno</div>
                         <div className="space-y-2 font-mono text-sm">
                             <div className="flex items-center justify-between">
@@ -601,10 +602,10 @@ export const DriverVideoFeed: React.FC = () => {
                     </div>
 
                     {/* Distractions */}
-                    <div className="bg-slate-800 rounded-xl p-4">
+                    <div className="hud-panel p-4">
                         <div className="flex items-center gap-3 mb-3">
                             <Phone className="text-orange-400" size={20} />
-                            <span className="font-semibold">Distracciones</span>
+                            <span className="font-mono uppercase tracking-wide text-sm">Distracciones</span>
                         </div>
                         {status.distractions.length > 0 ? (
                             <ul className="space-y-2">
