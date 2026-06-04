@@ -28,7 +28,7 @@ type DriverResult = {
     blink_count?: number;
     microsleep_count?: number;
     yawn_count?: number;
-    head_pose?: { yaw: number | null; pitch: number | null };
+    head_pose?: { yaw: number | null; pitch: number | null; roll?: number | null };
     ear?: number | null;
     ear_threshold?: number;
     alerts?: DmsAlert[];
@@ -396,7 +396,10 @@ export const DriverVideoFeed: React.FC = () => {
     const fatigueColor = fatigue >= 66 ? "text-red-400" : fatigue >= 33 ? "text-orange-400" : "text-green-400";
     const perclosPct = Math.round((status.perclos ?? 0) * 100);
     const yaw = status.head_pose?.yaw ?? null;
+    const pitch = status.head_pose?.pitch ?? null;
     const eyesOffRoad = yaw !== null && Math.abs(yaw) > 18;
+    const lookingDown = pitch !== null && pitch > 15;
+    const attentionBad = eyesOffRoad || lookingDown || !status.face_found;
 
     return (
         <div className="space-y-6">
@@ -470,6 +473,31 @@ export const DriverVideoFeed: React.FC = () => {
                         </p>
                     </div>
 
+                    {/* Active alerts */}
+                    {(status.alerts?.length ?? 0) > 0 && (
+                        <div className="bg-slate-800 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <AlertTriangle className="text-amber-400" size={18} />
+                                <span className="font-semibold">Alertas activas</span>
+                            </div>
+                            <ul className="space-y-2">
+                                {status.alerts!.map((a, i) => (
+                                    <li key={i} className="flex items-center gap-2 text-sm">
+                                        <span
+                                            className={`w-2 h-2 rounded-full ${a.severity === "critical"
+                                                ? "bg-red-500"
+                                                : a.severity === "high"
+                                                    ? "bg-orange-500"
+                                                    : "bg-yellow-500"
+                                                }`}
+                                        />
+                                        <span className="text-slate-200">{a.message}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
                     {/* Fatigue score */}
                     <div className="bg-slate-800 rounded-xl p-4">
                         <div className="flex items-center gap-3 mb-2">
@@ -508,14 +536,22 @@ export const DriverVideoFeed: React.FC = () => {
                     {/* Head pose / attention */}
                     <div className="bg-slate-800 rounded-xl p-4">
                         <div className="flex items-center gap-3">
-                            <Activity className={eyesOffRoad ? "text-red-400" : "text-green-400"} size={20} />
+                            <Activity className={attentionBad ? "text-red-400" : "text-green-400"} size={20} />
                             <span className="font-semibold">Atención</span>
-                            <span className={`ml-auto text-sm ${eyesOffRoad ? "text-red-400" : "text-green-400"}`}>
-                                {!status.face_found ? "Sin rostro" : eyesOffRoad ? "Mirada desviada" : "En la vía"}
+                            <span className={`ml-auto text-sm ${attentionBad ? "text-red-400" : "text-green-400"}`}>
+                                {!status.face_found
+                                    ? "Sin rostro"
+                                    : lookingDown
+                                        ? "Mirando abajo"
+                                        : eyesOffRoad
+                                            ? "Mirada desviada"
+                                            : "En la vía"}
                             </span>
                         </div>
-                        {yaw !== null && (
-                            <p className="text-xs text-slate-500 mt-2">Giro de cabeza: {yaw.toFixed(0)}°</p>
+                        {(yaw !== null || pitch !== null) && (
+                            <p className="text-xs text-slate-500 mt-2">
+                                Giro: {yaw !== null ? `${yaw.toFixed(0)}°` : "—"} · Inclinación: {pitch !== null ? `${pitch.toFixed(0)}°` : "—"}
+                            </p>
                         )}
                     </div>
 

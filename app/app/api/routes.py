@@ -438,17 +438,28 @@ async def websocket_driver_stream(websocket: WebSocket):
 # ============================================
 # Driver Safety v2 — MediaPipe + temporal DMS
 # ============================================
-def _detect_phone(model, frame) -> bool:
-    """Lightweight phone (COCO class 67) check used by the v2 DMS stream."""
+# COCO class ids → DMS distraction object types
+_DMS_OBJECT_CLASSES = {67: "cell_phone", 41: "cup", 39: "bottle"}
+
+
+def _detect_distraction_objects(model, frame):
+    """Detect phone / cup / bottle (COCO) for the v2 DMS stream."""
+    objs = []
     try:
         results = model(frame, imgsz=320, conf=0.35, verbose=False)
         for r in results:
             for box in r.boxes:
-                if int(box.cls[0].item()) == 67:  # cell phone
-                    return True
+                obj_type = _DMS_OBJECT_CLASSES.get(int(box.cls[0].item()))
+                if obj_type:
+                    x1, y1, x2, y2 = box.xyxy[0].tolist()
+                    objs.append({
+                        "type": obj_type,
+                        "box": [x1, y1, x2, y2],
+                        "confidence": float(box.conf[0].item()),
+                    })
     except Exception:
-        return False
-    return False
+        return []
+    return objs
 
 
 @router.websocket("/ws/driver-stream-v2")
@@ -466,7 +477,7 @@ async def websocket_driver_stream_v2(websocket: WebSocket):
     session = DmsSession()
     loop = asyncio.get_running_loop()
     frame_counter = 0
-    last_phone = False
+    last_objects: list = []
 
     # Reuse the already-loaded object model for phone detection (optional)
     try:
@@ -502,12 +513,12 @@ async def websocket_driver_stream_v2(websocket: WebSocket):
 
             t = time.perf_counter()
 
-            # Phone detection every 3rd frame to keep latency low
+            # Object detection (phone/cup/bottle) every 3rd frame to keep latency low
             if phone_model is not None and frame_counter % 3 == 0:
-                last_phone = await loop.run_in_executor(None, _detect_phone, phone_model, frame)
+                last_objects = await loop.run_in_executor(None, _detect_distraction_objects, phone_model, frame)
 
             start = time.time()
-            result = await loop.run_in_executor(None, session.process, frame, t, last_phone)
+            result = await loop.run_in_executor(None, session.process, frame, t, last_objects)
             latency_ms = (time.time() - start) * 1000.0
 
             capture_w = int(payload.get("capture_width") or 0) or frame.shape[1]

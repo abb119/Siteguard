@@ -62,6 +62,11 @@ class DmsConfig:
     yaw_distract_deg: float = 18.0
     pitch_distract_deg: float = 22.0
     distract_min_sec: float = 1.3
+    # Looking down (phone in lap / not watching the road), via solvePnP pitch
+    pitch_down_deg: float = 15.0
+    lookdown_min_sec: float = 1.2
+    # Drinking: an object (cup/bottle) sustained near the face
+    drinking_min_sec: float = 0.8
     # Hysteresis: how long a condition must clear before the alert drops
     alert_release_sec: float = 1.0
     # Smoothing factor for EMA (0..1, higher = snappier)
@@ -105,6 +110,7 @@ class FrameMetrics:
     mar: Optional[float] = None
     yaw_deg: Optional[float] = None
     pitch_deg: Optional[float] = None
+    roll_deg: Optional[float] = None
     box: Optional[Tuple[int, int, int, int]] = None
 
 
@@ -144,12 +150,15 @@ class DmsSession:
         self._ear_ema: Optional[float] = None
         self._yaw_ema: Optional[float] = None
         self._pitch_ema: Optional[float] = None
+        self._roll_ema: Optional[float] = None
 
         # Hysteresis state machines
         self._sm_drowsy = _SustainedFlag(0.4, self.cfg.alert_release_sec)
         self._sm_microsleep = _SustainedFlag(self.cfg.microsleep_sec, 0.3)
         self._sm_yawn = _SustainedFlag(self.cfg.yawn_min_sec, self.cfg.alert_release_sec)
         self._sm_distract = _SustainedFlag(self.cfg.distract_min_sec, self.cfg.alert_release_sec)
+        self._sm_lookdown = _SustainedFlag(self.cfg.lookdown_min_sec, self.cfg.alert_release_sec)
+        self._sm_drinking = _SustainedFlag(self.cfg.drinking_min_sec, self.cfg.alert_release_sec)
         self._sm_noface = _SustainedFlag(2.0, 1.0)
 
         # Yawn event counter (rising edge)
@@ -159,7 +168,7 @@ class DmsSession:
         self.fatigue_score: float = 0.0
 
     # ── Public API ─────────────────────────────────────────────────────────
-    def process(self, frame_bgr, t: float, phone_detected: bool = False) -> Dict:
+    def process(self, frame_bgr, t: float, objects: Optional[List[Dict]] = None) -> Dict:
         if self.start_ts is None:
             self.start_ts = t
 
@@ -173,6 +182,8 @@ class DmsSession:
             self._yaw_ema = self._ema(self._yaw_ema, metrics.yaw_deg)
         if metrics.pitch_deg is not None:
             self._pitch_ema = self._ema(self._pitch_ema, metrics.pitch_deg)
+        if metrics.roll_deg is not None:
+            self._roll_ema = self._ema(self._roll_ema, metrics.roll_deg)
 
         # Calibration phase
         calibrating = self._update_calibration(metrics, t)
@@ -183,17 +194,30 @@ class DmsSession:
 
         perclos = self._perclos()
 
+        # Object-based signals (phone anywhere = distraction; cup/bottle near
+        # the face = drinking)
+        phone_detected = any(o.get("type") == "cell_phone" for o in (objects or []))
+        drinking_cond = any(
+            o.get("type") in ("cup", "bottle") and self._near_face(o.get("box"), metrics.box)
+            for o in (objects or [])
+        )
+
         # Conditions
         drowsy_cond = self.calibrated and perclos >= self.cfg.perclos_drowsy
         microsleep_cond = self._closed_since is not None and (t - self._closed_since) >= self.cfg.microsleep_sec
         yawn_cond = metrics.mar is not None and metrics.mar >= self.cfg.mar_yawn
         distract_cond = self._distracted(metrics)
+        lookdown_cond = (
+            self._pitch_ema is not None and self._pitch_ema > self.cfg.pitch_down_deg
+        )
 
         # Hysteresis-filtered alerts
         a_drowsy = self._sm_drowsy.update(drowsy_cond, t)
         a_micro = self._sm_microsleep.update(microsleep_cond, t)
         a_yawn = self._sm_yawn.update(yawn_cond, t)
         a_distract = self._sm_distract.update(distract_cond, t)
+        a_lookdown = self._sm_lookdown.update(lookdown_cond, t)
+        a_drinking = self._sm_drinking.update(drinking_cond, t)
 
         # Yawn rising-edge count
         if a_yawn and not self._was_yawning:
@@ -213,8 +237,23 @@ class DmsSession:
             a_micro=a_micro,
             a_yawn=a_yawn,
             a_distract=a_distract,
+            a_lookdown=a_lookdown,
+            a_drinking=a_drinking,
             phone_detected=phone_detected,
         )
+
+    @staticmethod
+    def _near_face(obj_box, face_box) -> bool:
+        """True if an object's box center sits within an expanded face box."""
+        if not obj_box or not face_box:
+            return False
+        ox = (obj_box[0] + obj_box[2]) / 2.0
+        oy = (obj_box[1] + obj_box[3]) / 2.0
+        fx1, fy1, fx2, fy2 = face_box
+        fw = fx2 - fx1
+        fh = fy2 - fy1
+        # Expand the face box (drinking/eating happen just below the mouth)
+        return (fx1 - 0.5 * fw) <= ox <= (fx2 + 0.5 * fw) and (fy1 - 0.4 * fh) <= oy <= (fy2 + 0.9 * fh)
 
     def close(self) -> None:
         try:
@@ -251,9 +290,13 @@ class DmsSession:
         center_x = (left[0] + right[0]) / 2.0
         yaw = math.degrees(math.atan2(nose[0] - center_x, (right[0] - left[0]) + 1e-6))
 
-        forehead = coords[FOREHEAD]
-        chin = coords[CHIN]
-        pitch = math.degrees(math.atan2(forehead[1] - chin[1], (forehead[2] - chin[2]) + 1e-6))
+        # Real head pose via solvePnP (pitch/roll). Falls back to a heuristic
+        # pitch if the PnP solve fails, so look-down never raises false alarms.
+        pitch, _yaw_pnp, roll = _solve_head_pose(coords, w, h)
+        if pitch is None:
+            forehead = coords[FOREHEAD]
+            chin = coords[CHIN]
+            pitch = math.degrees(math.atan2(forehead[1] - chin[1], (forehead[2] - chin[2]) + 1e-6))
 
         xs = [p[0] for p in coords if 0 <= p[0] <= w]
         ys = [p[1] for p in coords if 0 <= p[1] <= h]
@@ -262,7 +305,7 @@ class DmsSession:
             if xs and ys
             else (0, 0, w, h)
         )
-        return FrameMetrics(True, ear, mar, yaw, pitch, box)
+        return FrameMetrics(True, ear, mar, yaw, pitch, roll, box)
 
     def _sm_noface_inverse(self, face_found: bool, t: float) -> bool:
         # _sm_noface latches when NO face is sustained; we return the positive
@@ -346,6 +389,8 @@ class DmsSession:
         a_micro = k["a_micro"]
         a_yawn = k["a_yawn"]
         a_distract = k["a_distract"]
+        a_lookdown = k["a_lookdown"]
+        a_drinking = k["a_drinking"]
         phone = k["phone_detected"]
         perclos = k["perclos"]
         calibrating = k["calibrating"]
@@ -362,10 +407,16 @@ class DmsSession:
         if a_distract:
             alerts.append({"type": "DISTRACTION", "severity": "high",
                            "message": "Mirada fuera de la carretera"})
-        if a_yawn:
-            alerts.append({"type": "YAWN", "severity": "medium", "message": "Bostezo"})
+        if a_lookdown:
+            alerts.append({"type": "LOOK_DOWN", "severity": "high",
+                           "message": "Mirando hacia abajo"})
         if phone:
             alerts.append({"type": "PHONE", "severity": "high", "message": "Uso de móvil"})
+        if a_drinking:
+            alerts.append({"type": "DRINKING", "severity": "medium",
+                           "message": "Bebiendo al volante"})
+        if a_yawn:
+            alerts.append({"type": "YAWN", "severity": "medium", "message": "Bostezo"})
         if not face_found and not calibrating:
             alerts.append({"type": "NO_FACE", "severity": "medium",
                            "message": "Conductor no detectado"})
@@ -374,7 +425,8 @@ class DmsSession:
         sev_rank = {"critical": 3, "high": 2, "medium": 1}
         top = max((sev_rank.get(a["severity"], 0) for a in alerts), default=0)
         risk_level = {3: "high", 2: "high", 1: "medium", 0: "low"}[top]
-        is_alert = not (a_drowsy or a_micro)  # "alert" = awake/attentive
+        # "Alert" = awake AND attentive (eyes on road, no phone/drink)
+        is_alert = not (a_drowsy or a_micro or a_distract or a_lookdown or phone or a_drinking)
 
         # Legacy-compatible drowsiness string + confidence
         if calibrating:
@@ -385,10 +437,14 @@ class DmsSession:
             drowsiness = "Alert"
         drowsiness_confidence = round(min(1.0, perclos / max(self.cfg.perclos_critical, 1e-6)), 3)
 
-        # Distractions list (legacy shape) — phone goes here
+        # Distractions list (legacy shape) — phone + drinking
         distractions: List[Dict] = []
         if phone:
             distractions.append({"type": "cell_phone", "confidence": 0.9})
+        if a_drinking:
+            distractions.append({"type": "drinking", "confidence": 0.8})
+        if a_lookdown:
+            distractions.append({"type": "looking_down", "confidence": 0.8})
 
         # Detections (bbox) for the canvas overlay
         detections: List[Dict] = []
@@ -398,8 +454,12 @@ class DmsSession:
                 label = "⚠️ MICROSUEÑO"
             elif a_drowsy:
                 label = "⚠️ SOMNOLENCIA"
+            elif a_lookdown:
+                label = "⬇️ MIRANDO ABAJO"
             elif a_distract:
                 label = "↪️ DISTRAÍDO"
+            elif a_drinking:
+                label = "🥤 BEBIENDO"
             detections.append({
                 "box": list(m.box),
                 "confidence": 1.0,
@@ -428,6 +488,7 @@ class DmsSession:
             "head_pose": {
                 "yaw": round(self._yaw_ema, 1) if self._yaw_ema is not None else None,
                 "pitch": round(self._pitch_ema, 1) if self._pitch_ema is not None else None,
+                "roll": round(self._roll_ema, 1) if self._roll_ema is not None else None,
             },
             "ear": round(self._ear_ema, 4) if self._ear_ema is not None else None,
             "ear_threshold": round(self.ear_threshold, 4),
@@ -449,3 +510,48 @@ def _mouth_aspect_ratio(coords, idxs) -> float:
 
 def _dist(a, b) -> float:
     return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
+
+
+# ── Head pose (solvePnP) ────────────────────────────────────────────────────
+# Generic 3D face model points (mm) matching the 2D landmarks below.
+_PNP_LANDMARKS = [NOSE_TIP, CHIN, 33, 263, 61, 291]
+_PNP_MODEL = np.array([
+    (0.0, 0.0, 0.0),        # nose tip
+    (0.0, -63.6, -12.5),    # chin
+    (-43.3, 32.7, -26.0),   # left eye outer corner
+    (43.3, 32.7, -26.0),    # right eye outer corner
+    (-28.9, -28.9, -24.1),  # left mouth corner
+    (28.9, -28.9, -24.1),   # right mouth corner
+], dtype=np.float64)
+
+
+def _solve_head_pose(coords, w: int, h: int):
+    """
+    Estimate (pitch, yaw, roll) in degrees from facial landmarks via solvePnP.
+    Convention: pitch > 0 ≈ looking down. Returns (None, None, None) on failure.
+    """
+    try:
+        image_points = np.array(
+            [(coords[i][0], coords[i][1]) for i in _PNP_LANDMARKS], dtype=np.float64
+        )
+        focal = float(w)
+        cam_matrix = np.array(
+            [[focal, 0, w / 2.0], [0, focal, h / 2.0], [0, 0, 1]], dtype=np.float64
+        )
+        dist_coeffs = np.zeros((4, 1))
+        ok, rvec, _tvec = cv2.solvePnP(
+            _PNP_MODEL, image_points, cam_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE
+        )
+        if not ok:
+            return None, None, None
+        rmat, _ = cv2.Rodrigues(rvec)
+        angles = cv2.RQDecomp3x3(rmat)[0]
+        pitch, yaw, roll = float(angles[0]), float(angles[1]), float(angles[2])
+        # Normalize pitch so straight-ahead ≈ 0 and down is positive.
+        if pitch > 90:
+            pitch -= 180
+        elif pitch < -90:
+            pitch += 180
+        return -pitch, yaw, roll
+    except Exception:
+        return None, None, None
