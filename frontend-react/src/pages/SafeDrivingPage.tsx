@@ -272,12 +272,12 @@ const CameraFeed: React.FC<{
             if (result?.detections) {
                 for (const det of result.detections) {
                     const [x1, y1, x2, y2] = det.box;
-                    ctx.strokeStyle = det.class_name === "person" ? "#ef4444" : "#22c55e";
+                    ctx.strokeStyle = det.class_name === "person" ? "#ff3b30" : "#00d97e";
                     ctx.lineWidth = 2;
                     ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
                     if (det.class_name) {
-                        ctx.fillStyle = det.class_name === "person" ? "#ef4444" : "#22c55e";
-                        ctx.font = "bold 12px Inter";
+                        ctx.fillStyle = det.class_name === "person" ? "#ff3b30" : "#00d97e";
+                        ctx.font = "bold 12px 'IBM Plex Mono', monospace";
                         const label = det.distance_m ? `${det.class_name} ${det.distance_m}m` : det.class_name;
                         ctx.fillText(label, x1, y1 - 5);
                     }
@@ -292,12 +292,12 @@ const CameraFeed: React.FC<{
     }, [activeMode]);
 
     return (
-        <div className="bg-slate-800 rounded-xl overflow-hidden">
-            <div className={`px-4 py-2 ${accentColor} flex items-center justify-between`}>
-                <span className="font-semibold">{title}</span>
-                <span className="text-xs text-slate-300">{fps} fps · {latencyMs.toFixed(0)}ms</span>
+        <div className={`hud-panel hud-corners overflow-hidden border-t-2 ${accentColor.replace("bg-", "border-")}`}>
+            <div className="px-4 py-2 border-b border-hud-line flex items-center justify-between">
+                <span className="font-mono uppercase tracking-wide text-sm">{title}</span>
+                <span className="font-mono text-xs text-hud-dim tnum">{fps} FPS · {latencyMs.toFixed(0)}MS</span>
             </div>
-            <div className="relative aspect-video bg-slate-900">
+            <div className="relative aspect-video bg-hud-bg">
                 <video ref={videoRef} className="hidden" playsInline muted loop />
                 <canvas ref={canvasRef} width={640} height={360} className="w-full h-full object-contain" />
 
@@ -365,21 +365,24 @@ const CameraFeed: React.FC<{
                 {!activeMode && (
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="flex gap-3">
-                            <button onClick={startWebcam} className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg">
-                                <Camera size={18} /> Webcam
+                            <button onClick={startWebcam} className="flex items-center gap-2 px-4 py-2 border border-hud-line hover:border-amber-400 hover:text-amber-400 transition-colors font-mono uppercase tracking-widest text-xs">
+                                <Camera size={16} /> Webcam
                             </button>
-                            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg">
-                                <Upload size={18} /> Video
+                            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-amber-400 text-hud-bg hover:bg-amber-300 transition-colors font-mono uppercase tracking-widest text-xs">
+                                <Upload size={16} /> Vídeo
                             </button>
                         </div>
                     </div>
                 )}
                 <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleFileUpload} />
             </div>
-            <div className="px-4 py-2 text-sm text-slate-400 flex justify-between">
-                <span>{wsStatus}</span>
+            <div className="px-4 py-2 border-t border-hud-line font-mono text-xs flex justify-between items-center">
+                <span className="flex items-center gap-2 text-hud-dim">
+                    <span className={`hud-dot inline-block ${wsStatus === "Conectado" ? "bg-phosphor-400" : "bg-hud-dim"}`} />
+                    {wsStatus}
+                </span>
                 {activeMode && (
-                    <button onClick={stopEverything} className="text-red-400 hover:text-red-300">
+                    <button onClick={stopEverything} className="text-alarm-400 hover:text-alarm-300 uppercase tracking-widest">
                         Detener
                     </button>
                 )}
@@ -413,32 +416,33 @@ export const SafeDrivingPage: React.FC = () => {
     }, [frontResult?.risk_level, rearResult?.risk_level, audioEnabled]);
 
     const getRiskBadge = (level: string) => {
-        switch (level) {
-            case "high": return <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-bold">PELIGRO</span>;
-            case "medium": return <span className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded-full text-xs font-bold">PRECAUCIÓN</span>;
-            default: return <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-bold">SEGURO</span>;
-        }
+        const map: Record<string, [string, string]> = {
+            high: ["border-alarm-400/50 text-alarm-400", "PELIGRO"],
+            medium: ["border-amber-400/50 text-amber-400", "PRECAUCIÓN"],
+        };
+        const [cls, label] = map[level] ?? ["border-phosphor-400/50 text-phosphor-400", "SEGURO"];
+        return <span className={`px-2 py-1 border font-mono text-xs uppercase tracking-widest ${cls}`}>{label}</span>;
     };
 
     return (
-        <div className="min-h-screen bg-slate-900 text-white">
+        <div className="min-h-screen bg-grid text-hud-bone">
             {/* Header */}
-            <header className="bg-slate-800 border-b border-slate-700 px-4 md:px-6 py-3 md:py-4">
+            <header className="bg-hud-panel border-b border-hud-line px-4 md:px-6 py-3 md:py-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 md:gap-4">
-                        <Link to="/services/driver" className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
-                            <ArrowLeft size={20} />
+                        <Link to="/services/driver" className="p-2 border border-hud-line hover:border-amber-400 hover:text-amber-400 transition-colors">
+                            <ArrowLeft size={18} />
                         </Link>
                         <div>
-                            <h1 className="text-lg md:text-xl font-bold">Conducción Segura</h1>
-                            <p className="text-xs md:text-sm text-slate-400">Análisis dual de cámaras frontal y trasera</p>
+                            <span className="hud-label">▸ ADAS · Cámaras frontal + trasera</span>
+                            <h1 className="font-mono text-lg md:text-xl font-bold uppercase tracking-wide mt-1">Conducción Segura</h1>
                         </div>
                     </div>
                     <button
                         onClick={() => setAudioEnabled(!audioEnabled)}
-                        className={`p-2 rounded-lg ${audioEnabled ? 'bg-green-500/20 text-green-400' : 'bg-slate-700 text-slate-400'}`}
+                        className={`p-2 border transition-colors ${audioEnabled ? "border-phosphor-400/40 text-phosphor-400" : "border-hud-line text-hud-dim"}`}
                     >
-                        {audioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                        {audioEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
                     </button>
                 </div>
             </header>
@@ -485,22 +489,22 @@ export const SafeDrivingPage: React.FC = () => {
                         rearResult?.alerts?.filter(a => a.level === "danger").length) ? (
                         <div className="space-y-2">
                             {frontResult?.alerts?.filter(a => a.level === "danger").map((alert, i) => (
-                                <div key={`front-${i}`} className="bg-red-500/20 border border-red-500/50 rounded-lg px-4 py-3 flex items-center gap-3 animate-pulse">
-                                    <AlertTriangle className="text-red-400" size={20} />
-                                    <span className="font-semibold text-red-400">{alert.message}</span>
+                                <div key={`front-${i}`} className="hud-panel border-l-2 border-alarm-400 px-4 py-3 flex items-center gap-3 animate-pulse">
+                                    <AlertTriangle className="text-alarm-400" size={20} />
+                                    <span className="font-mono uppercase tracking-wide text-sm text-alarm-400">{alert.message}</span>
                                 </div>
                             ))}
                             {rearResult?.alerts?.filter(a => a.level === "danger").map((alert, i) => (
-                                <div key={`rear-${i}`} className="bg-red-500/20 border border-red-500/50 rounded-lg px-4 py-3 flex items-center gap-3 animate-pulse">
-                                    <AlertTriangle className="text-red-400" size={20} />
-                                    <span className="font-semibold text-red-400">{alert.message}</span>
+                                <div key={`rear-${i}`} className="hud-panel border-l-2 border-alarm-400 px-4 py-3 flex items-center gap-3 animate-pulse">
+                                    <AlertTriangle className="text-alarm-400" size={20} />
+                                    <span className="font-mono uppercase tracking-wide text-sm text-alarm-400">{alert.message}</span>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-3 flex items-center gap-3">
-                            <CheckCircle className="text-green-400" size={20} />
-                            <span className="text-green-400">Sin alertas de peligro</span>
+                        <div className="hud-panel border-l-2 border-phosphor-400 px-4 py-3 flex items-center gap-3">
+                            <CheckCircle className="text-phosphor-400" size={20} />
+                            <span className="font-mono uppercase tracking-wide text-sm text-phosphor-400">Sin alertas de peligro</span>
                         </div>
                     )}
                 </div>
@@ -508,20 +512,20 @@ export const SafeDrivingPage: React.FC = () => {
                 {/* Status Panels */}
                 <div className="grid lg:grid-cols-2 gap-6">
                     {/* Front Camera Status */}
-                    <div className="bg-slate-800 rounded-xl p-4">
+                    <div className="hud-panel p-4">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-semibold">Estado Frontal</h3>
+                            <h3 className="font-mono uppercase tracking-wide text-sm">Estado Frontal</h3>
                             {frontResult && getRiskBadge(frontResult.risk_level)}
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-slate-700/50 rounded-lg p-3">
+                            <div className="border border-hud-line p-3">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Users size={16} className="text-blue-400" />
                                     <span className="text-sm text-slate-400">Peatones</span>
                                 </div>
                                 <span className="text-2xl font-bold">{frontResult?.pedestrians_count || 0}</span>
                             </div>
-                            <div className="bg-slate-700/50 rounded-lg p-3">
+                            <div className="border border-hud-line p-3">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Car size={16} className="text-green-400" />
                                     <span className="text-sm text-slate-400">Vehículos</span>
@@ -532,13 +536,13 @@ export const SafeDrivingPage: React.FC = () => {
                     </div>
 
                     {/* Rear Camera Status */}
-                    <div className="bg-slate-800 rounded-xl p-4">
+                    <div className="hud-panel p-4">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-semibold">Estado Trasero</h3>
+                            <h3 className="font-mono uppercase tracking-wide text-sm">Estado Trasero</h3>
                             {rearResult && getRiskBadge(rearResult.risk_level)}
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-slate-700/50 rounded-lg p-3">
+                            <div className="border border-hud-line p-3">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Car size={16} className="text-orange-400" />
                                     <span className="text-sm text-slate-400">Vehículo más cerca</span>
@@ -547,7 +551,7 @@ export const SafeDrivingPage: React.FC = () => {
                                     {rearResult?.closest_vehicle_distance ? `${rearResult.closest_vehicle_distance}m` : "—"}
                                 </span>
                             </div>
-                            <div className="bg-slate-700/50 rounded-lg p-3">
+                            <div className="border border-hud-line p-3">
                                 <div className="flex items-center gap-2 mb-1">
                                     {rearResult?.safe_to_maneuver ? (
                                         <CheckCircle size={16} className="text-green-400" />
