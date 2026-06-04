@@ -435,6 +435,106 @@ async def websocket_driver_stream(websocket: WebSocket):
         except:
             pass
 
+# ============================================
+# Driver Safety v2 — MediaPipe + temporal DMS
+# ============================================
+def _detect_phone(model, frame) -> bool:
+    """Lightweight phone (COCO class 67) check used by the v2 DMS stream."""
+    try:
+        results = model(frame, imgsz=320, conf=0.35, verbose=False)
+        for r in results:
+            for box in r.boxes:
+                if int(box.cls[0].item()) == 67:  # cell phone
+                    return True
+    except Exception:
+        return False
+    return False
+
+
+@router.websocket("/ws/driver-stream-v2")
+async def websocket_driver_stream_v2(websocket: WebSocket):
+    """
+    Phase 1 DMS: stateful, MediaPipe-based driver monitoring.
+    Computes PERCLOS, microsleep, head-off-road and a session fatigue score,
+    with hysteresis so alerts don't flicker. Output is a superset of v1.
+    """
+    await websocket.accept()
+    await websocket.send_json({"type": "ready", "version": 2})
+
+    from app.app.services.dms_realtime import DmsSession
+
+    session = DmsSession()
+    loop = asyncio.get_running_loop()
+    frame_counter = 0
+    last_phone = False
+
+    # Reuse the already-loaded object model for phone detection (optional)
+    try:
+        from app.app.services.driver_model_service import get_driver_model
+        phone_model = get_driver_model().object_model
+    except Exception as exc:  # pragma: no cover - optional
+        print(f"DMS v2: phone model unavailable ({exc})", flush=True)
+        phone_model = None
+
+    try:
+        while True:
+            message = await websocket.receive_text()
+
+            try:
+                payload = json.loads(message)
+            except json.JSONDecodeError:
+                await websocket.send_json({"type": "error", "message": "Invalid JSON payload"})
+                continue
+
+            image_b64 = payload.get("image")
+            if not image_b64:
+                await websocket.send_json({"type": "error", "message": "Missing 'image' field"})
+                continue
+
+            frame_counter += 1
+            frame_id = payload.get("frame_id", frame_counter)
+            timestamp = payload.get("timestamp")
+
+            frame = _decode_base64_frame(image_b64)
+            if frame is None:
+                await websocket.send_json({"type": "error", "message": "Could not decode frame", "frame_id": frame_id})
+                continue
+
+            t = time.perf_counter()
+
+            # Phone detection every 3rd frame to keep latency low
+            if phone_model is not None and frame_counter % 3 == 0:
+                last_phone = await loop.run_in_executor(None, _detect_phone, phone_model, frame)
+
+            start = time.time()
+            result = await loop.run_in_executor(None, session.process, frame, t, last_phone)
+            latency_ms = (time.time() - start) * 1000.0
+
+            capture_w = int(payload.get("capture_width") or 0) or frame.shape[1]
+            capture_h = int(payload.get("capture_height") or 0) or frame.shape[0]
+            display_w = int(payload.get("display_width") or capture_w)
+            display_h = int(payload.get("display_height") or capture_h)
+
+            result["detections"] = _scale_detections(
+                result.get("detections", []), capture_w, capture_h, display_w, display_h
+            )
+            result["type"] = "result"
+            result["frame_id"] = frame_id
+            result["timestamp"] = timestamp
+            result["latency_ms"] = round(latency_ms, 2)
+
+            await websocket.send_json(result)
+
+    except WebSocketDisconnect:
+        print("Driver v2 WebSocket disconnected", flush=True)
+    except Exception as e:
+        print(f"Driver v2 WebSocket error: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+    finally:
+        session.close()
+
+
 @router.get("/violations", response_model=List[ViolationOut])
 async def get_violations(
     skip: int = 0, 
