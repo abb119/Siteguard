@@ -8,9 +8,19 @@ import {
     Car,
     ArrowLeft,
     Volume2,
-    VolumeX
+    VolumeX,
+    Truck,
+    Video,
+    Settings,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ServiceLayout } from "../components/ServiceLayout";
+
+const NAV = [
+    { to: "/services/driver", label: "Monitor Conductor", icon: Video },
+    { to: "/services/driver/safe-driving", label: "Conducción Segura", icon: Car },
+    { to: "/services/driver/alerts", label: "Alertas", icon: AlertTriangle },
+    { to: "/services/driver/settings", label: "Configuración", icon: Settings },
+];
 
 // Types for camera results
 type FrontCamResult = {
@@ -425,18 +435,13 @@ export const SafeDrivingPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-grid text-hud-bone">
-            {/* Header */}
-            <header className="bg-hud-panel border-b border-hud-line px-4 md:px-6 py-3 md:py-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 md:gap-4">
-                        <Link to="/services/driver" className="p-2 border border-hud-line hover:border-amber-400 hover:text-amber-400 transition-colors">
-                            <ArrowLeft size={18} />
-                        </Link>
-                        <div>
-                            <span className="hud-label">▸ ADAS · Cámaras frontal + trasera</span>
-                            <h1 className="font-mono text-lg md:text-xl font-bold uppercase tracking-wide mt-1">Conducción Segura</h1>
-                        </div>
+        <ServiceLayout serviceName="Sistema ADAS" serviceIcon={<Truck size={22} />} accentColor="amber" navItems={NAV}>
+            <div className="p-4 md:p-8">
+                {/* In-page header */}
+                <div className="flex flex-wrap items-end justify-between gap-4 border-b border-hud-line pb-5 mb-6">
+                    <div>
+                        <span className="hud-label">▸ ADAS · Cámaras frontal + trasera</span>
+                        <h1 className="font-mono text-2xl md:text-3xl font-bold uppercase tracking-tight mt-2">Conducción Segura</h1>
                     </div>
                     <button
                         onClick={() => setAudioEnabled(!audioEnabled)}
@@ -445,9 +450,6 @@ export const SafeDrivingPage: React.FC = () => {
                         {audioEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
                     </button>
                 </div>
-            </header>
-
-            <main className="p-4 md:p-6">
                 {/* Dual Camera Grid */}
                 <div className="grid lg:grid-cols-2 gap-6 mb-6">
                     <div>
@@ -567,7 +569,7 @@ export const SafeDrivingPage: React.FC = () => {
                         </div>
                     </div>
                 </div>
-            </main>
-        </div>
+            </div>
+        </ServiceLayout>
     );
 };
