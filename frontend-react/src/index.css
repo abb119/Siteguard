@@ -2,30 +2,101 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@layer base {
+  :root {
+    color-scheme: dark;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
 
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #0f172a; /* Slate 900 */
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    background-color: #0a0a0b;
+    color: #e8e6df;
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    line-height: 1.55;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  /* Headings, data and labels run on the monospaced display face */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
 }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  background-color: #020617;
-  color: #f8fafc;
+@layer components {
+  /* Faint technical grid — the control-room backdrop */
+  .bg-grid {
+    background-color: #0a0a0b;
+    background-image:
+      linear-gradient(rgba(232, 230, 223, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232, 230, 223, 0.035) 1px, transparent 1px);
+    background-size: 42px 42px;
+  }
+
+  .bg-grid-fine {
+    background-image:
+      linear-gradient(rgba(232, 230, 223, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232, 230, 223, 0.04) 1px, transparent 1px);
+    background-size: 14px 14px;
+  }
+
+  /* Monospaced uppercase micro-label, e.g. "▸ SISTEMA ADAS" */
+  .hud-label {
+    font-family: "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.68rem;
+    line-height: 1;
+    color: #86847a;
+  }
+
+  /* Instrument panel: square, hairline border, optional corner ticks */
+  .hud-panel {
+    position: relative;
+    background-color: #121214;
+    border: 1px solid #26262b;
+  }
+
+  .hud-corners::before,
+  .hud-corners::after {
+    content: "";
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border: 1px solid #ffb000;
+    pointer-events: none;
+  }
+  .hud-corners::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .hud-corners::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+  /* Live status dot */
+  .hud-dot {
+    width: 7px; height: 7px;
+    box-shadow: 0 0 8px currentColor;
+  }
+
+  /* Tabular figures for data readouts */
+  .tnum { font-variant-numeric: tabular-nums; }
 }
 
-#root {
-  width: 100%;
-  min-height: 100vh;
-}
+/* Selection + scrollbar in HUD colors */
+::selection { background: #ffb000; color: #0a0a0b; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #0a0a0b; }
+::-webkit-scrollbar-thumb { background: #26262b; border: 2px solid #0a0a0b; }
+::-webkit-scrollbar-thumb:hover { background: #454540; }

@@ -3,45 +3,46 @@ import { Link } from "react-router-dom";
 import {
     ShieldCheck,
     Truck,
-    Zap,
-    Eye,
-    Bell,
     Lock,
     ArrowRight,
-    Play,
-    Sparkles,
+    Eye,
+    Bell,
+    Zap,
+    Activity,
 } from "lucide-react";
 import DotGrid from "../components/DotGrid";
 
 export const LandingPage: React.FC = () => {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white overflow-x-hidden">
+        <div className="min-h-screen bg-grid text-hud-bone overflow-x-hidden font-sans">
             {/* Header */}
-            <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-slate-900/70 border-b border-slate-800">
-                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <header className="fixed top-0 left-0 right-0 z-50 bg-hud-bg/80 backdrop-blur-sm border-b border-hud-line">
+                <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-2 rounded-xl">
-                            <ShieldCheck className="text-white" size={28} />
+                        <div className="border border-amber-400 text-amber-400 p-1.5">
+                            <ShieldCheck size={20} />
                         </div>
-                        <span className="font-bold text-xl tracking-tight">SiteGuard</span>
+                        <span className="font-mono font-semibold tracking-[0.2em] text-sm">SITEGUARD</span>
                     </div>
-                    <nav className="hidden md:flex items-center gap-8 text-sm text-slate-300">
-                        <a href="#services" className="hover:text-white transition-colors">Servicios</a>
-                        <a href="#features" className="hover:text-white transition-colors">Características</a>
-                        <a href="#contact" className="hover:text-white transition-colors">Contacto</a>
+                    <nav className="hidden md:flex items-center gap-8 hud-label">
+                        <a href="#services" className="hover:text-amber-400 transition-colors">Módulos</a>
+                        <a href="#features" className="hover:text-amber-400 transition-colors">Capacidades</a>
+                        <a href="#contact" className="hover:text-amber-400 transition-colors">Contacto</a>
                     </nav>
-
+                    <div className="hidden md:flex items-center gap-2">
+                        <span className="hud-dot bg-phosphor-400 text-phosphor-400 rounded-full inline-block animate-pulse" />
+                        <span className="hud-label text-phosphor-400">Operativo</span>
+                    </div>
                 </div>
             </header>
 
-            {/* Hero Section */}
-            <section className="relative pt-32 pb-20 px-6 overflow-hidden">
-                {/* DotGrid Background Animation */}
+            {/* Hero */}
+            <section className="relative pt-32 pb-20 px-6 overflow-hidden border-b border-hud-line">
                 <DotGrid
-                    dotSize={5}
-                    gap={15}
-                    baseColor="#271E37"
-                    activeColor="#5227FF"
+                    dotSize={4}
+                    gap={18}
+                    baseColor="#1b1b1e"
+                    activeColor="#ffb000"
                     proximity={120}
                     shockRadius={250}
                     shockStrength={5}
@@ -50,240 +51,206 @@ export const LandingPage: React.FC = () => {
                 />
 
                 <div className="max-w-7xl mx-auto relative z-10">
-                    <div className="text-center max-w-4xl mx-auto">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-cyan-400 text-sm mb-8">
-                            <Sparkles size={16} />
-                            <span>Potenciado por Inteligencia Artificial</span>
+                    <div className="max-w-4xl">
+                        <div className="flex items-center gap-3 mb-8">
+                            <span className="text-amber-400 font-mono text-xs">▸</span>
+                            <span className="hud-label">Visión por computador · Tiempo real</span>
                         </div>
 
-                        <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                            Seguridad Industrial
+                        <h1 className="font-mono font-bold tracking-tight text-5xl md:text-7xl leading-[0.95] mb-8">
+                            SEGURIDAD
                             <br />
-                            <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                                Potenciada por IA
-                            </span>
+                            INDUSTRIAL
+                            <br />
+                            <span className="text-amber-400">MONITORIZADA.</span>
                         </h1>
 
-                        <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-                            Detectamos riesgos en tiempo real antes de que se conviertan en accidentes.
-                            Monitoreo continuo, alertas instantáneas, cumplimiento garantizado.
+                        <p className="text-hud-dim text-lg max-w-2xl mb-10 leading-relaxed border-l-2 border-hud-line pl-5">
+                            Detección de riesgos en tiempo real antes de que se conviertan en
+                            accidentes. EPP, fatiga del conductor y ciberseguridad — un solo panel
+                            de control.
                         </p>
 
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+                        <div className="flex flex-col sm:flex-row items-start gap-4 mb-16">
                             <a
                                 href="#services"
-                                className="group flex items-center gap-2 px-8 py-4 text-lg font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl hover:from-cyan-400 hover:to-blue-500 transition-all shadow-xl shadow-cyan-500/30"
+                                className="group flex items-center gap-3 px-7 py-3.5 font-mono uppercase tracking-widest text-sm bg-amber-400 text-hud-bg hover:bg-amber-300 transition-colors"
                             >
-                                <Play size={20} />
-                                Ver Demo en Vivo
-                                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                                Iniciar demo
+                                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                            </a>
+                            <a
+                                href="#features"
+                                className="px-7 py-3.5 font-mono uppercase tracking-widest text-sm border border-hud-line text-hud-bone hover:border-amber-400 hover:text-amber-400 transition-colors"
+                            >
+                                Especificaciones
                             </a>
                         </div>
 
-                        {/* Stats */}
-                        <div className="grid grid-cols-3 gap-4 md:gap-8 max-w-2xl mx-auto">
-                            <div className="text-center">
-                                <div className="text-2xl md:text-4xl font-bold text-cyan-400 mb-1">99.2%</div>
-                                <div className="text-sm text-slate-500">Precisión</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl md:text-4xl font-bold text-cyan-400 mb-1">&lt;50ms</div>
-                                <div className="text-sm text-slate-500">Latencia</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl md:text-4xl font-bold text-cyan-400 mb-1">24/7</div>
-                                <div className="text-sm text-slate-500">Monitoreo</div>
-                            </div>
+                        {/* Instrument readouts */}
+                        <div className="grid grid-cols-3 max-w-2xl border border-hud-line divide-x divide-hud-line">
+                            <Readout value="99.2%" label="Precisión" />
+                            <Readout value="<50ms" label="Latencia" />
+                            <Readout value="24/7" label="Vigilancia" />
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Services Section */}
-            <section id="services" className="py-24 px-6">
+            {/* Services */}
+            <section id="services" className="py-24 px-6 border-b border-hud-line">
                 <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-16">
-                        <h2 className="text-2xl md:text-4xl font-bold mb-4">Nuestros Servicios</h2>
-                        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-                            Soluciones de seguridad inteligente para diferentes entornos industriales
-                        </p>
+                    <div className="flex items-end justify-between mb-12 border-b border-hud-line pb-5">
+                        <h2 className="font-mono text-2xl md:text-4xl font-bold tracking-tight">MÓDULOS</h2>
+                        <span className="hud-label">03 Sistemas</span>
                     </div>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {/* PPE Card */}
-                        <Link
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-hud-line border border-hud-line">
+                        <ServiceCard
                             to="/services/ppe"
-                            className="group relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700 rounded-2xl p-8 hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 transition-all duration-300 hover:-translate-y-1"
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <div className="relative z-10">
-                                <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                    <ShieldCheck size={28} className="text-white" />
-                                </div>
-                                <h3 className="text-2xl font-bold mb-3">Detección de EPP</h3>
-                                <p className="text-slate-400 mb-6 leading-relaxed">
-                                    Verifica en tiempo real el uso correcto de Equipos de Protección Personal: cascos, chalecos, guantes y más.
-                                </p>
-                                <div className="flex flex-wrap gap-2 mb-6">
-                                    <span className="px-3 py-1 bg-cyan-500/10 text-cyan-400 text-xs rounded-full">Casco</span>
-                                    <span className="px-3 py-1 bg-cyan-500/10 text-cyan-400 text-xs rounded-full">Chaleco</span>
-                                    <span className="px-3 py-1 bg-cyan-500/10 text-cyan-400 text-xs rounded-full">Guantes</span>
-                                    <span className="px-3 py-1 bg-cyan-500/10 text-cyan-400 text-xs rounded-full">Gafas</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-cyan-400 font-semibold">
-                                    Explorar
-                                    <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
-                                </div>
-                            </div>
-                        </Link>
-
-                        {/* Driver Card */}
-                        <Link
+                            index="01"
+                            icon={<ShieldCheck size={26} />}
+                            title="Detección de EPP"
+                            description="Verifica en tiempo real el uso correcto de Equipos de Protección Personal: cascos, chalecos y más."
+                            tags={["Casco", "Chaleco", "Guantes", "Gafas"]}
+                        />
+                        <ServiceCard
                             to="/services/driver"
-                            className="group relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700 rounded-2xl p-8 hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-500/10 transition-all duration-300 hover:-translate-y-1"
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <div className="relative z-10">
-                                <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                    <Truck size={28} className="text-white" />
-                                </div>
-                                <h3 className="text-2xl font-bold mb-3">Conducción Segura</h3>
-                                <p className="text-slate-400 mb-6 leading-relaxed">
-                                    Sistema ADAS para monitorear fatiga, distracciones y comportamiento del conductor en tiempo real.
-                                </p>
-                                <div className="flex flex-wrap gap-2 mb-6">
-                                    <span className="px-3 py-1 bg-orange-500/10 text-orange-400 text-xs rounded-full">Fatiga</span>
-                                    <span className="px-3 py-1 bg-orange-500/10 text-orange-400 text-xs rounded-full">Distracción</span>
-                                    <span className="px-3 py-1 bg-orange-500/10 text-orange-400 text-xs rounded-full">Cinturón</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-orange-400 font-semibold">
-                                    Explorar
-                                    <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
-                                </div>
-                            </div>
-                        </Link>
-
-                        {/* Cybersecurity Card */}
-                        <Link
+                            index="02"
+                            icon={<Truck size={26} />}
+                            title="Monitor de Conductor"
+                            description="Sistema ADAS: fatiga, microsueños, distracción y uso de móvil mediante visión por computador."
+                            tags={["Fatiga", "PERCLOS", "Distracción"]}
+                        />
+                        <ServiceCard
                             to="/services/security"
-                            className="group relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700 rounded-2xl p-8 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 hover:-translate-y-1"
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <div className="relative z-10">
-                                <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                    <Lock size={28} className="text-white" />
-                                </div>
-                                <h3 className="text-2xl font-bold mb-3">Ciberseguridad</h3>
-                                <p className="text-slate-400 mb-6 leading-relaxed">
-                                    Honeytokens, grafos de ataque con auto-remediación y firewall LLM para proteger tus activos digitales.
-                                </p>
-                                <div className="flex flex-wrap gap-2 mb-6">
-                                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-full">Honeytokens</span>
-                                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-full">Attack Graph</span>
-                                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-full">LLM Gateway</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-emerald-400 font-semibold">
-                                    Explorar
-                                    <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
-                                </div>
-                            </div>
-                        </Link>
+                            index="03"
+                            icon={<Lock size={26} />}
+                            title="Ciberseguridad"
+                            description="Honeytokens, grafos de ataque con auto-remediación y firewall LLM para proteger activos digitales."
+                            tags={["Honeytokens", "Attack Graph", "LLM Gateway"]}
+                        />
                     </div>
                 </div>
             </section>
 
-            {/* Features Section */}
-            <section id="features" className="py-24 px-6 bg-slate-900/50">
+            {/* Features */}
+            <section id="features" className="py-24 px-6 border-b border-hud-line">
                 <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-16">
-                        <h2 className="text-2xl md:text-4xl font-bold mb-4">¿Por qué SiteGuard?</h2>
-                        <p className="text-slate-400 text-lg">Tecnología de vanguardia al servicio de la seguridad</p>
+                    <div className="flex items-end justify-between mb-12 border-b border-hud-line pb-5">
+                        <h2 className="font-mono text-2xl md:text-4xl font-bold tracking-tight">CAPACIDADES</h2>
+                        <span className="hud-label">¿Por qué SiteGuard?</span>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <FeatureCard
-                            icon={<Zap className="text-yellow-400" size={24} />}
-                            title="Tiempo Real"
-                            description="Detección en menos de 50ms con aceleración GPU"
-                            gradient="from-yellow-500/10"
-                        />
-                        <FeatureCard
-                            icon={<Eye className="text-cyan-400" size={24} />}
-                            title="Alta Precisión"
-                            description="Modelos entrenados con 99.2% de precisión"
-                            gradient="from-cyan-500/10"
-                        />
-                        <FeatureCard
-                            icon={<Bell className="text-red-400" size={24} />}
-                            title="Alertas Instantáneas"
-                            description="Notificaciones inmediatas ante cualquier violación"
-                            gradient="from-red-500/10"
-                        />
-                        <FeatureCard
-                            icon={<Lock className="text-green-400" size={24} />}
-                            title="100% On-Premise"
-                            description="Tus datos nunca salen de tu infraestructura"
-                            gradient="from-green-500/10"
-                        />
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-hud-line border border-hud-line">
+                        <FeatureCard icon={<Zap size={22} />} code="LAT" title="Tiempo Real" description="Inferencia en <50ms con aceleración GPU." />
+                        <FeatureCard icon={<Eye size={22} />} code="ACC" title="Alta Precisión" description="Modelos entrenados con 99.2% de precisión." />
+                        <FeatureCard icon={<Bell size={22} />} code="ALR" title="Alertas Inmediatas" description="Notificación instantánea ante cada violación." />
+                        <FeatureCard icon={<Activity size={22} />} code="LOC" title="100% On-Premise" description="Tus datos nunca salen de tu infraestructura." />
                     </div>
                 </div>
             </section>
 
-            {/* CTA Section */}
-            <section id="contact" className="py-24 px-6">
-                <div className="max-w-4xl mx-auto text-center">
-                    <h2 className="text-2xl md:text-4xl font-bold mb-4">¿Listo para prevenir accidentes?</h2>
-                    <p className="text-slate-400 text-lg mb-10">
-                        Agenda una demo personalizada y descubre cómo SiteGuard puede proteger a tu equipo.
+            {/* CTA */}
+            <section id="contact" className="py-24 px-6 border-b border-hud-line">
+                <div className="max-w-4xl mx-auto">
+                    <span className="hud-label">▸ Solicitar acceso</span>
+                    <h2 className="font-mono text-2xl md:text-4xl font-bold tracking-tight mt-3 mb-4">
+                        ¿LISTO PARA PREVENIR ACCIDENTES?
+                    </h2>
+                    <p className="text-hud-dim text-lg mb-10 max-w-2xl">
+                        Agenda una demo y descubre cómo SiteGuard protege a tu equipo en tiempo real.
                     </p>
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <div className="flex flex-col sm:flex-row items-stretch gap-px max-w-xl bg-hud-line border border-hud-line">
                         <input
                             type="email"
                             placeholder="tu@empresa.com"
-                            className="w-full sm:w-80 px-6 py-4 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                            className="flex-1 px-5 py-4 bg-hud-panel text-hud-bone font-mono text-sm placeholder-hud-dim focus:outline-none focus:bg-hud-bg"
                         />
-                        <button className="w-full sm:w-auto px-8 py-4 font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl hover:from-cyan-400 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/25">
-                            Solicitar Demo
+                        <button className="px-7 py-4 font-mono uppercase tracking-widest text-sm bg-amber-400 text-hud-bg hover:bg-amber-300 transition-colors">
+                            Solicitar
                         </button>
                     </div>
                 </div>
             </section>
 
             {/* Footer */}
-            <footer className="border-t border-slate-800 py-12 px-6">
+            <footer className="py-10 px-6">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="flex items-center gap-3">
-                        <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-2 rounded-xl">
-                            <ShieldCheck className="text-white" size={24} />
+                        <div className="border border-amber-400 text-amber-400 p-1.5">
+                            <ShieldCheck size={18} />
                         </div>
-                        <span className="font-bold text-lg">SiteGuard</span>
+                        <span className="font-mono font-semibold tracking-[0.2em] text-sm">SITEGUARD</span>
                     </div>
-                    <div className="flex items-center gap-8 text-sm text-slate-500">
-                        <a href="#" className="hover:text-white transition-colors">Privacidad</a>
-                        <a href="#" className="hover:text-white transition-colors">Términos</a>
-                        <a href="#" className="hover:text-white transition-colors">Documentación</a>
-                        <Link to="/admin" className="hover:text-white transition-colors text-cyan-500/50 hover:text-cyan-400">Admin Panel</Link>
+                    <div className="flex items-center gap-6 hud-label">
+                        <a href="#" className="hover:text-amber-400 transition-colors">Privacidad</a>
+                        <a href="#" className="hover:text-amber-400 transition-colors">Términos</a>
+                        <a href="#" className="hover:text-amber-400 transition-colors">Docs</a>
+                        <Link to="/admin" className="hover:text-amber-400 transition-colors">Admin</Link>
                     </div>
-                    <div className="text-sm text-slate-500">
-                        © 2025 SiteGuard. Made in Spain
-                    </div>
+                    <span className="hud-label">© 2025 · Made in Spain</span>
                 </div>
             </footer>
         </div>
     );
 };
 
-const FeatureCard: React.FC<{
+const Readout: React.FC<{ value: string; label: string }> = ({ value, label }) => (
+    <div className="px-5 py-5">
+        <div className="font-mono text-2xl md:text-4xl font-bold text-amber-400 tnum">{value}</div>
+        <div className="hud-label mt-2">{label}</div>
+    </div>
+);
+
+const ServiceCard: React.FC<{
+    to: string;
+    index: string;
     icon: React.ReactNode;
     title: string;
     description: string;
-    gradient: string;
-}> = ({ icon, title, description, gradient }) => (
-    <div className={`bg-gradient-to-br ${gradient} to-transparent border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition-colors`}>
-        <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center mb-4">
-            {icon}
+    tags: string[];
+}> = ({ to, index, icon, title, description, tags }) => (
+    <Link
+        to={to}
+        className="group relative bg-hud-panel p-8 hover:bg-hud-bg transition-colors"
+    >
+        <div className="flex items-start justify-between mb-6">
+            <span className="text-amber-400 border border-amber-400/40 p-3 group-hover:bg-amber-400 group-hover:text-hud-bg transition-colors">
+                {icon}
+            </span>
+            <span className="font-mono text-3xl font-bold text-hud-line group-hover:text-amber-400/40 transition-colors tnum">
+                {index}
+            </span>
         </div>
-        <h3 className="font-semibold text-lg mb-2">{title}</h3>
-        <p className="text-slate-400 text-sm">{description}</p>
+        <h3 className="font-mono text-xl font-semibold uppercase tracking-wide mb-3">{title}</h3>
+        <p className="text-hud-dim text-sm mb-6 leading-relaxed">{description}</p>
+        <div className="flex flex-wrap gap-2 mb-6">
+            {tags.map((t) => (
+                <span key={t} className="px-2 py-1 border border-hud-line text-hud-dim font-mono text-[11px] uppercase tracking-wider">
+                    {t}
+                </span>
+            ))}
+        </div>
+        <div className="flex items-center gap-2 text-amber-400 font-mono uppercase tracking-widest text-xs">
+            Acceder
+            <ArrowRight size={16} className="group-hover:translate-x-1.5 transition-transform" />
+        </div>
+    </Link>
+);
+
+const FeatureCard: React.FC<{
+    icon: React.ReactNode;
+    code: string;
+    title: string;
+    description: string;
+}> = ({ icon, code, title, description }) => (
+    <div className="bg-hud-panel p-6 hover:bg-hud-bg transition-colors">
+        <div className="flex items-center justify-between mb-4">
+            <span className="text-amber-400">{icon}</span>
+            <span className="hud-label">{code}</span>
+        </div>
+        <h3 className="font-mono font-semibold uppercase tracking-wide text-base mb-2">{title}</h3>
+        <p className="text-hud-dim text-sm leading-relaxed">{description}</p>
     </div>
 );
