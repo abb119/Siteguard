@@ -21,8 +21,26 @@ type AnalysisResult = {
     latency_ms: number;
 };
 
-// Professional body diagram component with anatomical style
-const BodyDiagram: React.FC<{ issues: PostureIssue[]; score: number }> = ({ issues }) => {
+// Per-zone HUD status chip with optional angle readout
+const ZoneChip: React.FC<{
+    label: string;
+    has: boolean;
+    level: "danger" | "warning" | null;
+    angle?: number;
+}> = ({ label, has, level, angle }) => {
+    const color = !has ? "text-phosphor-400" : level === "danger" ? "text-alarm-400" : "text-amber-400";
+    return (
+        <div className="bg-hud-panel px-1 py-1.5 text-center">
+            <div className="hud-label text-[9px]">{label}</div>
+            <div className={`font-mono uppercase tracking-wider tnum ${color}`}>
+                {!has ? "OK" : angle != null ? `${Math.round(angle)}°` : level === "danger" ? "ALTO" : "MED"}
+            </div>
+        </div>
+    );
+};
+
+// Professional body diagram component — HUD anatomical schematic
+const BodyDiagram: React.FC<{ issues: PostureIssue[]; score: number }> = ({ issues, score }) => {
     const hasSpineIssue = issues.some(i => ["CURVED_SPINE", "SLIGHT_CURVE", "BENT_FORWARD"].includes(i.type));
     const hasLegIssue = issues.some(i => i.type === "STRAIGHT_LEG_LIFT");
     const hasArmIssue = issues.some(i => i.type === "OVERHEAD_REACH");
@@ -31,6 +49,10 @@ const BodyDiagram: React.FC<{ issues: PostureIssue[]; score: number }> = ({ issu
         issues.find(i => i.type === "SLIGHT_CURVE")?.level || null;
     const legLevel = issues.find(i => i.type === "STRAIGHT_LEG_LIFT")?.level || null;
     const armLevel = issues.find(i => i.type === "OVERHEAD_REACH")?.level || null;
+
+    const spineAngle = issues.find(i => ["CURVED_SPINE", "BENT_FORWARD", "SLIGHT_CURVE"].includes(i.type))?.angle;
+    const armAngle = issues.find(i => i.type === "OVERHEAD_REACH")?.angle;
+    const legAngle = issues.find(i => i.type === "STRAIGHT_LEG_LIFT")?.angle;
 
     const getZoneStyle = (hasIssue: boolean, level: "danger" | "warning" | null) => {
         if (!hasIssue) return { fill: "url(#greenGradient)", filter: "url(#glowGreen)" };
@@ -44,7 +66,12 @@ const BodyDiagram: React.FC<{ issues: PostureIssue[]; score: number }> = ({ issu
 
     return (
         <div className="hud-panel p-4">
-            <h3 className="hud-label mb-3 text-center">Mapa Corporal</h3>
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="hud-label">Mapa Corporal</h3>
+                <span className={`font-mono text-xs tnum px-2 py-0.5 border ${score < 50 ? "border-alarm-400/50 text-alarm-400" : score < 80 ? "border-amber-400/50 text-amber-400" : "border-phosphor-400/50 text-phosphor-400"}`}>
+                    {Math.round(score)}
+                </span>
+            </div>
             <svg viewBox="0 0 120 200" className="w-full h-52 mx-auto">
                 <defs>
                     {/* Gradients */}
@@ -61,34 +88,44 @@ const BodyDiagram: React.FC<{ issues: PostureIssue[]; score: number }> = ({ issu
                         <stop offset="100%" stopColor="#dc2626" />
                     </linearGradient>
                     <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#475569" />
-                        <stop offset="100%" stopColor="#334155" />
+                        <stop offset="0%" stopColor="#26262b" />
+                        <stop offset="100%" stopColor="#16161a" />
                     </linearGradient>
 
                     {/* Glow filters */}
                     <filter id="glowGreen" x="-50%" y="-50%" width="200%" height="200%">
                         <feGaussianBlur stdDeviation="2" result="blur" />
-                        <feFlood floodColor="#22c55e" floodOpacity="0.5" />
+                        <feFlood floodColor="#00d97e" floodOpacity="0.45" />
                         <feComposite in2="blur" operator="in" />
                         <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
                     </filter>
                     <filter id="glowOrange" x="-50%" y="-50%" width="200%" height="200%">
                         <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feFlood floodColor="#f59e0b" floodOpacity="0.6" />
+                        <feFlood floodColor="#ffb000" floodOpacity="0.55" />
                         <feComposite in2="blur" operator="in" />
                         <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
                     </filter>
                     <filter id="glowRed" x="-50%" y="-50%" width="200%" height="200%">
                         <feGaussianBlur stdDeviation="4" result="blur" />
-                        <feFlood floodColor="#ef4444" floodOpacity="0.7" />
+                        <feFlood floodColor="#ff3b30" floodOpacity="0.7" />
                         <feComposite in2="blur" operator="in" />
                         <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
                     </filter>
                 </defs>
 
+                {/* Instrument registration grid */}
+                <line x1="60" y1="6" x2="60" y2="194" stroke="#26262b" strokeWidth="0.5" strokeDasharray="2 3" />
+                <line x1="10" y1="100" x2="110" y2="100" stroke="#26262b" strokeWidth="0.5" strokeDasharray="2 3" />
+                <g stroke="#ffb000" strokeWidth="1" fill="none">
+                    <path d="M6 6 h7 M6 6 v7" />
+                    <path d="M114 6 h-7 M114 6 v7" />
+                    <path d="M6 194 h7 M6 194 v-7" />
+                    <path d="M114 194 h-7 M114 194 v-7" />
+                </g>
+
                 {/* Head */}
-                <ellipse cx="60" cy="22" rx="14" ry="16" fill="url(#bodyGradient)" />
-                <ellipse cx="60" cy="20" rx="12" ry="14" fill="#64748b" />
+                <ellipse cx="60" cy="22" rx="14" ry="16" fill="url(#bodyGradient)" stroke="#2c2c2e" strokeWidth="0.5" />
+                <ellipse cx="60" cy="20" rx="12" ry="14" fill="#33333a" />
 
                 {/* Neck */}
                 <rect x="54" y="36" width="12" height="10" rx="3" fill="url(#bodyGradient)" />
@@ -100,12 +137,12 @@ const BodyDiagram: React.FC<{ issues: PostureIssue[]; score: number }> = ({ issu
                 <g className="transition-all duration-500">
                     {/* Left arm */}
                     <path d="M 30 50 Q 22 52 18 65 Q 14 80 16 95 Q 18 105 20 110"
-                        stroke={hasArmIssue ? (armLevel === "danger" ? "#ef4444" : "#f59e0b") : "#22c55e"}
+                        stroke={hasArmIssue ? (armLevel === "danger" ? "#ff3b30" : "#ffb000") : "#00d97e"}
                         strokeWidth="10" strokeLinecap="round" fill="none"
                         filter={armStyle.filter} className="transition-all duration-300" />
                     {/* Right arm */}
                     <path d="M 90 50 Q 98 52 102 65 Q 106 80 104 95 Q 102 105 100 110"
-                        stroke={hasArmIssue ? (armLevel === "danger" ? "#ef4444" : "#f59e0b") : "#22c55e"}
+                        stroke={hasArmIssue ? (armLevel === "danger" ? "#ff3b30" : "#ffb000") : "#00d97e"}
                         strokeWidth="10" strokeLinecap="round" fill="none"
                         filter={armStyle.filter} className="transition-all duration-300" />
                 </g>
@@ -117,13 +154,13 @@ const BodyDiagram: React.FC<{ issues: PostureIssue[]; score: number }> = ({ issu
                 {/* Spine highlight */}
                 <g className="transition-all duration-500">
                     <path d="M 60 48 L 60 105"
-                        stroke={hasSpineIssue ? (spineLevel === "danger" ? "#ef4444" : "#f59e0b") : "#22c55e"}
+                        stroke={hasSpineIssue ? (spineLevel === "danger" ? "#ff3b30" : "#ffb000") : "#00d97e"}
                         strokeWidth="8" strokeLinecap="round"
                         filter={spineStyle.filter} className="transition-all duration-300" />
                     {/* Vertebrae dots */}
                     {[52, 62, 72, 82, 92].map((y, i) => (
                         <circle key={i} cx="60" cy={y} r="3"
-                            fill={hasSpineIssue ? (spineLevel === "danger" ? "#fca5a5" : "#fcd34d") : "#86efac"} />
+                            fill={hasSpineIssue ? (spineLevel === "danger" ? "#ff8a82" : "#ffd266") : "#5fffc0"} />
                     ))}
                 </g>
 
@@ -134,28 +171,22 @@ const BodyDiagram: React.FC<{ issues: PostureIssue[]; score: number }> = ({ issu
                 <g className="transition-all duration-500">
                     {/* Left leg */}
                     <path d="M 42 118 Q 38 145 40 165 Q 42 180 40 190"
-                        stroke={hasLegIssue ? (legLevel === "danger" ? "#ef4444" : "#f59e0b") : "#22c55e"}
+                        stroke={hasLegIssue ? (legLevel === "danger" ? "#ff3b30" : "#ffb000") : "#00d97e"}
                         strokeWidth="14" strokeLinecap="round" fill="none"
                         filter={legStyle.filter} className="transition-all duration-300" />
                     {/* Right leg */}
                     <path d="M 78 118 Q 82 145 80 165 Q 78 180 80 190"
-                        stroke={hasLegIssue ? (legLevel === "danger" ? "#ef4444" : "#f59e0b") : "#22c55e"}
+                        stroke={hasLegIssue ? (legLevel === "danger" ? "#ff3b30" : "#ffb000") : "#00d97e"}
                         strokeWidth="14" strokeLinecap="round" fill="none"
                         filter={legStyle.filter} className="transition-all duration-300" />
                 </g>
             </svg>
 
             {/* Status indicators */}
-            <div className="grid grid-cols-3 gap-1 mt-3 text-xs">
-                <div className={`text-center py-1 rounded ${hasSpineIssue ? (spineLevel === "danger" ? "bg-red-500/20 text-red-400" : "bg-orange-500/20 text-orange-400") : "bg-green-500/20 text-green-400"}`}>
-                    Columna
-                </div>
-                <div className={`text-center py-1 rounded ${hasArmIssue ? "bg-orange-500/20 text-orange-400" : "bg-green-500/20 text-green-400"}`}>
-                    Brazos
-                </div>
-                <div className={`text-center py-1 rounded ${hasLegIssue ? "bg-orange-500/20 text-orange-400" : "bg-green-500/20 text-green-400"}`}>
-                    Piernas
-                </div>
+            <div className="grid grid-cols-3 gap-px mt-3 bg-hud-line border border-hud-line">
+                <ZoneChip label="Columna" has={hasSpineIssue} level={spineLevel} angle={spineAngle} />
+                <ZoneChip label="Brazos" has={hasArmIssue} level={armLevel} angle={armAngle} />
+                <ZoneChip label="Piernas" has={hasLegIssue} level={legLevel} angle={legAngle} />
             </div>
         </div>
     );
