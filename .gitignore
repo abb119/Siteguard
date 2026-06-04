@@ -95,3 +95,4 @@ siteguard.db
 error.log
 
 app/app/static/violations/
+app/app/static/driver_events/

@@ -3,6 +3,7 @@ import {
     Camera, Upload, AlertTriangle, Eye, EyeOff, Phone, CheckCircle,
     Activity, Gauge, ScanFace, Volume2, VolumeX,
 } from "lucide-react";
+import { getSessionId } from "../utils/session";
 
 type DmsAlert = { type: string; severity: string; message: string };
 
@@ -170,17 +171,19 @@ export const DriverVideoFeed: React.FC = () => {
         // Always target the v2 DMS endpoint. We only take the HOST from the env
         // var (which may be set in the Vercel dashboard with the legacy path) and
         // force the path to /ws/driver-stream-v2 so a stale env value can't pin
-        // us to the old stream.
+        // us to the old stream. session_id groups events for the trip report.
+        const sid = getSessionId();
         const DRIVER_WS_PATH = "/ws/driver-stream-v2";
         const rawWs = import.meta.env.VITE_DRIVER_WS_URL;
-        let wsUrl = "ws://127.0.0.1:8000" + DRIVER_WS_PATH;
+        let wsUrl = `ws://127.0.0.1:8000${DRIVER_WS_PATH}?session_id=${sid}`;
         if (rawWs) {
             try {
                 const u = new URL(rawWs);
                 u.pathname = DRIVER_WS_PATH;
+                u.searchParams.set("session_id", sid);
                 wsUrl = u.toString();
             } catch {
-                wsUrl = rawWs;
+                wsUrl = `${rawWs}?session_id=${sid}`;
             }
         }
         const ws = new WebSocket(wsUrl);

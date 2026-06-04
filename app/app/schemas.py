@@ -20,3 +20,24 @@ class ViolationOut(ViolationBase):
 class ViolationReview(BaseModel):
     is_false_positive: bool
     notes: Optional[str] = None
+
+
+class DriverEventOut(BaseModel):
+    id: int
+    timestamp: datetime
+    session_id: Optional[str] = None
+    event_type: str
+    severity: str
+    message: Optional[str] = None
+    perclos: Optional[float] = None
+    fatigue_score: Optional[float] = None
+    image_path: Optional[str] = None
+    is_reviewed: bool
+    is_false_positive: bool
+
+    class Config:
+        from_attributes = True
+
+
+class DriverEventReview(BaseModel):
+    is_false_positive: bool

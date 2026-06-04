@@ -29,8 +29,8 @@ from app.app.auth.jwt import (
     get_current_active_user,
 )
 from app.app.db.database import get_db
-from app.app.db.models import Detection, Incident, Violation
-from app.app.schemas import ViolationOut, ViolationReview
+from app.app.db.models import Detection, DriverEvent, Incident, Violation
+from app.app.schemas import DriverEventOut, DriverEventReview, ViolationOut, ViolationReview
 from sqlalchemy import select, desc
 from app.app.services.alert_service import AlertService
 from app.app.services.compliance_service import ComplianceService
@@ -463,18 +463,22 @@ def _detect_distraction_objects(model, frame):
 
 
 @router.websocket("/ws/driver-stream-v2")
-async def websocket_driver_stream_v2(websocket: WebSocket):
+async def websocket_driver_stream_v2(websocket: WebSocket, db: AsyncSession = Depends(get_db)):
     """
     Phase 1 DMS: stateful, MediaPipe-based driver monitoring.
     Computes PERCLOS, microsleep, head-off-road and a session fatigue score,
     with hysteresis so alerts don't flicker. Output is a superset of v1.
+    Persists incidents (with snapshots) to the driver_events table.
     """
     await websocket.accept()
     await websocket.send_json({"type": "ready", "version": 2})
 
     from app.app.services.dms_realtime import DmsSession
+    from app.app.services.driver_event_service import DriverEventRecorder
 
     session = DmsSession()
+    session_id = websocket.query_params.get("session_id")
+    recorder = DriverEventRecorder(session_id=session_id)
     loop = asyncio.get_running_loop()
     frame_counter = 0
     last_objects: list = []
@@ -520,6 +524,13 @@ async def websocket_driver_stream_v2(websocket: WebSocket):
             start = time.time()
             result = await loop.run_in_executor(None, session.process, frame, t, last_objects)
             latency_ms = (time.time() - start) * 1000.0
+
+            # Persist incidents (rising-edge + cooldown) with a snapshot.
+            # Done before scaling so snapshot boxes match the capture frame.
+            try:
+                await recorder.record(result, frame, t, db)
+            except Exception as rec_exc:
+                print(f"DMS v2: event record failed ({rec_exc})", flush=True)
 
             capture_w = int(payload.get("capture_width") or 0) or frame.shape[1]
             capture_h = int(payload.get("capture_height") or 0) or frame.shape[0]
@@ -577,10 +588,114 @@ async def review_violation(
     violation.is_reviewed = True
     violation.is_false_positive = review.is_false_positive
     violation.reviewer_notes = review.notes
-    
+
     await db.commit()
     await db.refresh(violation)
     return violation
+
+
+# ============================================
+# Driver Events — history, sessions, trip report
+# ============================================
+_SAFETY_WEIGHTS = {
+    "MICROSLEEP": 18, "DROWSY": 10, "PHONE": 8, "DISTRACTION": 6,
+    "LOOK_DOWN": 6, "DRINKING": 4, "NO_FACE": 3, "YAWN": 2,
+}
+
+
+@router.get("/driver/events", response_model=List[DriverEventOut])
+async def list_driver_events(
+    session_id: Optional[str] = None,
+    event_type: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db),
+):
+    query = select(DriverEvent)
+    if session_id:
+        query = query.where(DriverEvent.session_id == session_id)
+    if event_type:
+        query = query.where(DriverEvent.event_type == event_type)
+    query = query.order_by(desc(DriverEvent.timestamp)).offset(skip).limit(limit)
+    result = await db.execute(query)
+    return result.scalars().all()
+
+
+@router.get("/driver/sessions")
+async def list_driver_sessions(db: AsyncSession = Depends(get_db)):
+    """Distinct monitoring sessions with a quick summary, newest first."""
+    from sqlalchemy import func as safunc
+
+    query = (
+        select(
+            DriverEvent.session_id,
+            safunc.count(DriverEvent.id).label("events"),
+            safunc.max(DriverEvent.timestamp).label("last"),
+            safunc.min(DriverEvent.timestamp).label("first"),
+        )
+        .group_by(DriverEvent.session_id)
+        .order_by(desc(safunc.max(DriverEvent.timestamp)))
+    )
+    result = await db.execute(query)
+    return [
+        {"session_id": r.session_id, "events": r.events, "first": r.first, "last": r.last}
+        for r in result.all()
+    ]
+
+
+@router.get("/driver/sessions/{session_id}/report")
+async def driver_session_report(session_id: str, db: AsyncSession = Depends(get_db)):
+    query = (
+        select(DriverEvent)
+        .where(DriverEvent.session_id == session_id)
+        .order_by(DriverEvent.timestamp)
+    )
+    result = await db.execute(query)
+    events = result.scalars().all()
+
+    counts: Dict[str, int] = {}
+    penalty = 0.0
+    max_fatigue = 0.0
+    timeline = []
+    for e in events:
+        counts[e.event_type] = counts.get(e.event_type, 0) + 1
+        penalty += _SAFETY_WEIGHTS.get(e.event_type, 3)
+        if e.fatigue_score:
+            max_fatigue = max(max_fatigue, e.fatigue_score)
+        timeline.append({
+            "id": e.id,
+            "timestamp": e.timestamp,
+            "event_type": e.event_type,
+            "severity": e.severity,
+            "fatigue_score": e.fatigue_score,
+            "image_path": e.image_path,
+        })
+
+    return {
+        "session_id": session_id,
+        "total_events": len(events),
+        "counts": counts,
+        "safety_score": max(0, round(100 - penalty)),
+        "max_fatigue": round(max_fatigue, 1),
+        "first": events[0].timestamp if events else None,
+        "last": events[-1].timestamp if events else None,
+        "timeline": timeline,
+    }
+
+
+@router.post("/driver/events/{event_id}/review", response_model=DriverEventOut)
+async def review_driver_event(
+    event_id: int, review: DriverEventReview, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(DriverEvent).where(DriverEvent.id == event_id))
+    event = result.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    event.is_reviewed = True
+    event.is_false_positive = review.is_false_positive
+    await db.commit()
+    await db.refresh(event)
+    return event
 
 
 # ============================================

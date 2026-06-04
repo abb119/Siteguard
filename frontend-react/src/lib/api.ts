@@ -72,3 +72,44 @@ export function apiFetch(url: string, init?: RequestInit): Promise<Response> {
     headers.set("ngrok-skip-browser-warning", "true");
     return fetch(url, { ...init, headers });
 }
+
+// ── Driver events / trip report ──────────────────────────────────────────────
+const API_HOST = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
+/** Prefix a backend-relative /static path with the API host (for prod/ngrok). */
+export function staticUrl(path?: string | null): string {
+    if (!path) return "";
+    if (path.startsWith("http")) return path;
+    return `${API_HOST}${path}`;
+}
+
+export async function listDriverEvents(sessionId?: string): Promise<any[]> {
+    const url = new URL(`${API_HOST}/driver/events`);
+    if (sessionId) url.searchParams.set("session_id", sessionId);
+    url.searchParams.set("limit", "200");
+    const res = await apiFetch(url.toString());
+    if (!res.ok) throw new Error("Failed to fetch driver events");
+    return res.json();
+}
+
+export async function listDriverSessions(): Promise<any[]> {
+    const res = await apiFetch(`${API_HOST}/driver/sessions`);
+    if (!res.ok) throw new Error("Failed to fetch driver sessions");
+    return res.json();
+}
+
+export async function getDriverReport(sessionId: string): Promise<any> {
+    const res = await apiFetch(`${API_HOST}/driver/sessions/${sessionId}/report`);
+    if (!res.ok) throw new Error("Failed to fetch driver report");
+    return res.json();
+}
+
+export async function reviewDriverEvent(id: number, isFalsePositive: boolean): Promise<any> {
+    const res = await apiFetch(`${API_HOST}/driver/events/${id}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_false_positive: isFalsePositive }),
+    });
+    if (!res.ok) throw new Error("Failed to review event");
+    return res.json();
+}

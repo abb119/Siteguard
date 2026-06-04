@@ -94,3 +94,20 @@ class Violation(Base):
     is_false_positive = Column(Boolean, default=False)
     reviewer_notes = Column(String, nullable=True)
 
+
+class DriverEvent(Base):
+    """A persisted driver-monitoring incident (microsleep, drowsy, distraction…)."""
+    __tablename__ = "driver_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    session_id = Column(String, index=True, nullable=True)
+    event_type = Column(String, nullable=False, index=True)  # MICROSLEEP, DROWSY, DISTRACTION, LOOK_DOWN, PHONE, DRINKING, YAWN, NO_FACE
+    severity = Column(String, nullable=False)  # critical / high / medium
+    message = Column(String, nullable=True)
+    perclos = Column(Float, nullable=True)
+    fatigue_score = Column(Float, nullable=True)
+    image_path = Column(String, nullable=True)  # Snapshot path under /static
+    is_reviewed = Column(Boolean, default=False)
+    is_false_positive = Column(Boolean, default=False)
+
