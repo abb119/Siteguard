@@ -167,7 +167,22 @@ export const DriverVideoFeed: React.FC = () => {
     useEffect(() => {
         if (!activeMode) return;
 
-        const wsUrl = import.meta.env.VITE_DRIVER_WS_URL || "ws://127.0.0.1:8000/ws/driver-stream-v2";
+        // Always target the v2 DMS endpoint. We only take the HOST from the env
+        // var (which may be set in the Vercel dashboard with the legacy path) and
+        // force the path to /ws/driver-stream-v2 so a stale env value can't pin
+        // us to the old stream.
+        const DRIVER_WS_PATH = "/ws/driver-stream-v2";
+        const rawWs = import.meta.env.VITE_DRIVER_WS_URL;
+        let wsUrl = "ws://127.0.0.1:8000" + DRIVER_WS_PATH;
+        if (rawWs) {
+            try {
+                const u = new URL(rawWs);
+                u.pathname = DRIVER_WS_PATH;
+                wsUrl = u.toString();
+            } catch {
+                wsUrl = rawWs;
+            }
+        }
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
