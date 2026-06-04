@@ -43,8 +43,8 @@ const BodyDiagram: React.FC<{ issues: PostureIssue[]; score: number }> = ({ issu
     const legStyle = getZoneStyle(hasLegIssue, legLevel);
 
     return (
-        <div className="bg-slate-800 rounded-xl p-4">
-            <h3 className="font-semibold mb-3 text-center text-sm">Mapa Corporal</h3>
+        <div className="hud-panel p-4">
+            <h3 className="hud-label mb-3 text-center">Mapa Corporal</h3>
             <svg viewBox="0 0 120 200" className="w-full h-52 mx-auto">
                 <defs>
                     {/* Gradients */}
@@ -478,7 +478,7 @@ export const ErgonomicsPage: React.FC = () => {
 
                         // Draw score label with background
                         const labelText = `Postura: ${score}%`;
-                        ctx.font = "bold 14px Inter";
+                        ctx.font = "bold 14px 'IBM Plex Mono', monospace";
                         const textWidth = ctx.measureText(labelText).width;
 
                         ctx.fillStyle = score < 50 ? "rgba(239,68,68,0.8)" : score < 80 ? "rgba(245,158,11,0.8)" : "rgba(34,197,94,0.8)";
@@ -505,44 +505,45 @@ export const ErgonomicsPage: React.FC = () => {
             navItems={PPENavItems}
         >
             <div className="p-4 md:p-8">
-                <div className="mb-6">
-                    <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-3">
-                        <Activity className="text-green-400" />
+                <div className="border-b border-hud-line pb-5 mb-6">
+                    <span className="hud-label">▸ Análisis postural · Pose estimation</span>
+                    <h1 className="font-mono text-2xl md:text-3xl font-bold tracking-tight uppercase mt-2 flex items-center gap-3">
+                        <Activity className="text-phosphor-400" />
                         Análisis de Ergonomía
                     </h1>
-                    <p className="text-slate-400">
+                    <p className="text-hud-dim text-sm mt-2 max-w-2xl">
                         Detecta posturas incorrectas: espalda encorvada, brazos elevados, levantamiento con piernas rectas.
                     </p>
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-6">
                     {/* Video Feed */}
-                    <div className="lg:col-span-2 bg-slate-800 rounded-xl overflow-hidden">
-                        <div className="px-4 py-2 bg-green-600/30 flex items-center justify-between">
-                            <span className="font-semibold">Cámara</span>
+                    <div className="lg:col-span-2 hud-panel hud-corners overflow-hidden">
+                        <div className="px-4 py-2 border-b border-hud-line flex items-center justify-between">
+                            <span className="hud-label">Cámara</span>
                             <div className="flex items-center gap-4">
                                 <button
                                     onClick={() => setShowGuide(!showGuide)}
-                                    className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${showGuide ? "bg-green-600" : "bg-slate-600"}`}
+                                    className={`flex items-center gap-1 text-xs px-2 py-1 font-mono uppercase tracking-wider border transition-colors ${showGuide ? "border-phosphor-400/40 text-phosphor-400" : "border-hud-line text-hud-dim"}`}
                                 >
                                     {showGuide ? <Eye size={12} /> : <EyeOff size={12} />}
                                     Guía
                                 </button>
-                                <span className="text-xs text-slate-300">{fps} fps · {result?.latency_ms?.toFixed(0) || 0}ms</span>
+                                <span className="font-mono text-xs text-hud-dim tnum">{fps} FPS · {result?.latency_ms?.toFixed(0) || 0}MS</span>
                             </div>
                         </div>
-                        <div className="relative aspect-video bg-slate-900">
+                        <div className="relative aspect-video bg-hud-bg">
                             <video ref={videoRef} className="hidden" playsInline muted loop />
                             <canvas ref={canvasRef} width={640} height={480} className="w-full h-full object-contain" />
 
                             {!activeMode && (
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <div className="flex gap-3">
-                                        <button onClick={startWebcam} className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg">
-                                            <Camera size={18} /> Webcam
+                                        <button onClick={startWebcam} className="flex items-center gap-2 px-4 py-2 border border-hud-line hover:border-amber-400 hover:text-amber-400 transition-colors font-mono uppercase tracking-widest text-xs">
+                                            <Camera size={16} /> Webcam
                                         </button>
-                                        <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg">
-                                            <Upload size={18} /> Video
+                                        <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-amber-400 text-hud-bg hover:bg-amber-300 transition-colors font-mono uppercase tracking-widest text-xs">
+                                            <Upload size={16} /> Vídeo
                                         </button>
                                     </div>
                                 </div>
@@ -551,18 +552,21 @@ export const ErgonomicsPage: React.FC = () => {
 
                             {/* Guide Legend */}
                             {activeMode && showGuide && (
-                                <div className="absolute bottom-2 left-2 bg-slate-900/80 backdrop-blur-sm rounded-lg px-3 py-2 text-xs">
-                                    <div className="flex items-center gap-2 text-green-400">
-                                        <div className="w-8 h-0.5 border-t-2 border-dashed border-green-400"></div>
+                                <div className="absolute bottom-2 left-2 hud-panel px-3 py-2 text-xs">
+                                    <div className="flex items-center gap-2 text-phosphor-400 font-mono uppercase tracking-wider">
+                                        <div className="w-8 h-0.5 border-t-2 border-dashed border-phosphor-400"></div>
                                         <span>Postura ideal</span>
                                     </div>
                                 </div>
                             )}
                         </div>
-                        <div className="px-4 py-2 text-sm text-slate-400 flex justify-between">
-                            <span>{wsStatus}</span>
+                        <div className="px-4 py-2 border-t border-hud-line font-mono text-xs flex justify-between items-center">
+                            <span className="flex items-center gap-2 text-hud-dim">
+                                <span className={`hud-dot inline-block ${wsStatus.startsWith("Conectado") ? "bg-phosphor-400" : "bg-hud-dim"}`} />
+                                {wsStatus}
+                            </span>
                             {activeMode && (
-                                <button onClick={stopEverything} className="text-red-400 hover:text-red-300">
+                                <button onClick={stopEverything} className="text-alarm-400 hover:text-alarm-300 uppercase tracking-widest">
                                     Detener
                                 </button>
                             )}
@@ -572,14 +576,14 @@ export const ErgonomicsPage: React.FC = () => {
                     {/* Right Panel */}
                     <div className="space-y-4">
                         {/* Score Gauge */}
-                        <div className="bg-slate-800 rounded-xl p-6 text-center">
-                            <h3 className="text-lg font-semibold mb-4">Puntuación de Postura</h3>
-                            <div className={`text-6xl font-bold transition-colors duration-300 ${(result?.avg_posture_score ?? 100) < 50 ? "text-red-400" :
-                                (result?.avg_posture_score ?? 100) < 80 ? "text-orange-400" : "text-green-400"
+                        <div className="hud-panel p-6 text-center">
+                            <h3 className="hud-label mb-4">Puntuación de postura</h3>
+                            <div className={`text-6xl font-mono font-bold tnum transition-colors duration-300 ${(result?.avg_posture_score ?? 100) < 50 ? "text-alarm-400" :
+                                (result?.avg_posture_score ?? 100) < 80 ? "text-amber-400" : "text-phosphor-400"
                                 }`}>
-                                {result?.avg_posture_score ?? 100}%
+                                {result?.avg_posture_score ?? 100}
                             </div>
-                            <div className="mt-2 text-sm text-slate-400">
+                            <div className="hud-label mt-2">
                                 {result?.people_count ?? 0} trabajadores detectados
                             </div>
                         </div>
@@ -591,14 +595,14 @@ export const ErgonomicsPage: React.FC = () => {
                         />
 
                         {/* Issues List */}
-                        <div className="bg-slate-800 rounded-xl p-4">
-                            <h3 className="font-semibold mb-3">Problemas Detectados</h3>
+                        <div className="hud-panel p-4">
+                            <h3 className="hud-label mb-3">Problemas detectados</h3>
                             {result?.posture_issues && result.posture_issues.length > 0 ? (
                                 <div className="space-y-2">
                                     {result.posture_issues.map((issue, i) => (
-                                        <div key={i} className={`rounded-lg px-3 py-2 text-sm ${issue.level === "danger"
-                                            ? "bg-red-500/20 border border-red-500/50 text-red-400"
-                                            : "bg-orange-500/20 border border-orange-500/50 text-orange-400"
+                                        <div key={i} className={`border-l-2 px-3 py-2 text-sm font-mono ${issue.level === "danger"
+                                            ? "border-alarm-400 text-alarm-400"
+                                            : "border-amber-400 text-amber-400"
                                             }`}>
                                             <div className="flex items-center gap-2">
                                                 <AlertTriangle size={14} />
@@ -608,8 +612,8 @@ export const ErgonomicsPage: React.FC = () => {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-slate-500 text-sm">
-                                    ✓ Sin problemas de postura detectados
+                                <div className="hud-label">
+                                    Sin problemas de postura detectados
                                 </div>
                             )}
                         </div>
