@@ -4,6 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Truck, Video, Car, AlertTriangle, Settings, Map as MapIcon, Gauge, X, Activity } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
+import { ROUTES } from "../data/alicanteRoutes";
 
 const NAV = [
     { to: "/services/driver", label: "Monitor Conductor", icon: Video },
@@ -13,28 +14,41 @@ const NAV = [
     { to: "/services/driver/settings", label: "Configuración", icon: Settings },
 ];
 
+const CENTER: [number, number] = [38.3525, -0.482];
+
+// ── Route geometry (cumulative distance for interpolation) ──────────────────
+function haversine(a: [number, number], b: [number, number]): number {
+    const R = 6371000, toRad = Math.PI / 180;
+    const dLat = (b[0] - a[0]) * toRad, dLng = (b[1] - a[1]) * toRad;
+    const la1 = a[0] * toRad, la2 = b[0] * toRad;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+}
+const ROUTE_GEOM = ROUTES.map((pts) => {
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + haversine(pts[i - 1], pts[i]));
+    return { pts, cum, len: cum[cum.length - 1] || 1 };
+});
+function posAt(ri: number, dist: number): [number, number] {
+    const g = ROUTE_GEOM[ri];
+    const d = ((dist % g.len) + g.len) % g.len;
+    let i = 1;
+    while (i < g.cum.length && g.cum[i] < d) i++;
+    const segStart = g.cum[i - 1], segLen = (g.cum[i] - g.cum[i - 1]) || 1;
+    const f = (d - segStart) / segLen;
+    const [la1, lo1] = g.pts[i - 1], [la2, lo2] = g.pts[i];
+    return [la1 + (la2 - la1) * f, lo1 + (lo2 - lo1) * f];
+}
+
 type Risk = "low" | "medium" | "high";
 type Driver = {
-    id: string;
-    name: string;
-    vehicle: string;
-    lat: number;
-    lng: number;
-    heading: number; // radians
-    speed: number; // km/h
-    risk: Risk;
-    fatigue: number; // 0-100
-    alert: string | null;
+    id: string; name: string; vehicle: string;
+    routeIdx: number; dist: number; lat: number; lng: number;
+    speed: number; risk: Risk; fatigue: number; alert: string | null;
 };
 
-// Alicante
-const CENTER: [number, number] = [38.3452, -0.481];
-const BOUNDS = { latMin: 38.325, latMax: 38.378, lngMin: -0.515, lngMax: -0.445 };
-
-const NAMES = [
-    "J. Martínez", "L. García", "M. López", "A. Sánchez", "C. Pérez",
-    "R. Gómez", "S. Ruiz", "D. Torres", "N. Ramírez", "P. Navarro",
-];
+const NAMES = ["J. Martínez", "L. García", "M. López", "A. Sánchez", "C. Pérez",
+    "R. Gómez", "S. Ruiz", "D. Torres", "N. Ramírez", "P. Navarro"];
 const VEHICLES = ["Furgoneta 01", "Camión 02", "Furgoneta 03", "Camión 04", "Van 05",
     "Camión 06", "Furgoneta 07", "Van 08", "Camión 09", "Furgoneta 10"];
 const ALERTS = ["Somnolencia", "Mirada desviada", "Uso de móvil", "Mirando abajo", "Sin cinturón", "Bostezo"];
@@ -43,50 +57,34 @@ const riskColor = (r: Risk) => (r === "high" ? "#ff3b30" : r === "medium" ? "#ff
 const riskText = (r: Risk) => (r === "high" ? "text-alarm-400" : r === "medium" ? "text-amber-400" : "text-phosphor-400");
 
 function makeDrivers(): Driver[] {
-    return NAMES.map((name, i) => ({
-        id: `D${String(i + 1).padStart(2, "0")}`,
-        name,
-        vehicle: VEHICLES[i],
-        lat: BOUNDS.latMin + Math.random() * (BOUNDS.latMax - BOUNDS.latMin),
-        lng: BOUNDS.lngMin + Math.random() * (BOUNDS.lngMax - BOUNDS.lngMin),
-        heading: Math.random() * Math.PI * 2,
-        speed: 25 + Math.random() * 45,
-        risk: "low",
-        fatigue: Math.random() * 30,
-        alert: null,
-    }));
+    return NAMES.map((name, i) => {
+        const routeIdx = i % ROUTE_GEOM.length;
+        const dist = Math.random() * ROUTE_GEOM[routeIdx].len;
+        const [lat, lng] = posAt(routeIdx, dist);
+        return {
+            id: `D${String(i + 1).padStart(2, "0")}`, name, vehicle: VEHICLES[i],
+            routeIdx, dist, lat, lng,
+            speed: 25 + Math.random() * 35, risk: "low",
+            fatigue: Math.random() * 30, alert: null,
+        };
+    });
 }
 
 function step(d: Driver): Driver {
-    // move ~1s along heading
-    const distM = (d.speed * 1000) / 3600;
-    const latRad = (d.lat * Math.PI) / 180;
-    let lat = d.lat + (distM / 111320) * Math.cos(d.heading);
-    let lng = d.lng + (distM / (111320 * Math.cos(latRad))) * Math.sin(d.heading);
-    let heading = d.heading + (Math.random() - 0.5) * 0.6;
+    const distM = (d.speed * 1000) / 3600; // ~1s of travel
+    const dist = d.dist + distM;
+    const [lat, lng] = posAt(d.routeIdx, dist);
 
-    // bounce off bounds towards center
-    if (lat < BOUNDS.latMin || lat > BOUNDS.latMax || lng < BOUNDS.lngMin || lng > BOUNDS.lngMax) {
-        heading = Math.atan2(CENTER[0] - lat, CENTER[1] - lng) + (Math.random() - 0.5) * 0.4;
-        lat = Math.min(BOUNDS.latMax, Math.max(BOUNDS.latMin, lat));
-        lng = Math.min(BOUNDS.lngMax, Math.max(BOUNDS.lngMin, lng));
-    }
-
-    let speed = Math.min(90, Math.max(0, d.speed + (Math.random() - 0.5) * 12));
-    let fatigue = Math.min(100, Math.max(0, d.fatigue + (Math.random() - 0.45) * 4));
+    const speed = Math.min(90, Math.max(8, d.speed + (Math.random() - 0.5) * 10));
+    const fatigue = Math.min(100, Math.max(0, d.fatigue + (Math.random() - 0.45) * 4));
     let alert = d.alert;
     let risk: Risk = "low";
-
-    // random incident lifecycle
-    if (d.alert) {
-        if (Math.random() < 0.25) alert = null; // resolves
-    } else if (Math.random() < 0.04) {
-        alert = ALERTS[Math.floor(Math.random() * ALERTS.length)];
-    }
+    if (d.alert) { if (Math.random() < 0.25) alert = null; }
+    else if (Math.random() < 0.04) alert = ALERTS[Math.floor(Math.random() * ALERTS.length)];
     if (alert) risk = Math.random() < 0.5 ? "high" : "medium";
     else if (fatigue > 65) risk = "medium";
 
-    return { ...d, lat, lng, heading, speed, fatigue, alert, risk };
+    return { ...d, dist, lat, lng, speed, fatigue, alert, risk };
 }
 
 export const FleetMapPage: React.FC = () => {
@@ -111,13 +109,15 @@ export const FleetMapPage: React.FC = () => {
     // Map init (once)
     useEffect(() => {
         if (!mapDivRef.current || mapRef.current) return;
-        const map = L.map(mapDivRef.current, { center: CENTER, zoom: 13, zoomControl: true, attributionControl: true });
+        const map = L.map(mapDivRef.current, { center: CENTER, zoom: 13 });
         L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
-            attribution: '© OpenStreetMap © CARTO',
-            subdomains: "abcd",
-            maxZoom: 19,
+            attribution: "© OpenStreetMap © CARTO", subdomains: "abcd", maxZoom: 19,
         }).addTo(map);
-        mapRef.current = map;
+
+        // Draw the road network faintly
+        for (const pts of ROUTES) {
+            L.polyline(pts as [number, number][], { color: "#3a3a40", weight: 2, opacity: 0.6 }).addTo(map);
+        }
 
         for (const d of driversRef.current) {
             const m = L.marker([d.lat, d.lng], { icon: icon(d, false) }).addTo(map);
@@ -143,7 +143,6 @@ export const FleetMapPage: React.FC = () => {
         return () => clearInterval(iv);
     }, []);
 
-    // Pan to selected
     useEffect(() => {
         if (!selectedId || !mapRef.current) return;
         const d = driversRef.current.find((x) => x.id === selectedId);
@@ -153,7 +152,6 @@ export const FleetMapPage: React.FC = () => {
     const selected = drivers.find((d) => d.id === selectedId) || null;
     const counts = {
         high: drivers.filter((d) => d.risk === "high").length,
-        medium: drivers.filter((d) => d.risk === "medium").length,
         active: drivers.filter((d) => d.alert).length,
     };
 
@@ -223,7 +221,6 @@ export const FleetMapPage: React.FC = () => {
                                 <button onClick={() => setSelectedId(null)} className="p-2 border border-hud-line hover:border-amber-400 transition-colors"><X size={16} /></button>
                             </div>
 
-                            {/* Status block */}
                             <div className={`hud-panel p-4 border-l-2 mb-4 ${selected.risk === "high" ? "border-alarm-400" : selected.risk === "medium" ? "border-amber-400" : "border-phosphor-400"}`}>
                                 <div className="flex items-center gap-3">
                                     {selected.alert ? <AlertTriangle className="text-alarm-400" size={22} /> : <Activity className="text-phosphor-400" size={22} />}
@@ -232,7 +229,6 @@ export const FleetMapPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Telemetry */}
                             <div className="grid grid-cols-2 gap-px bg-hud-line border border-hud-line mb-4">
                                 <div className="bg-hud-panel p-4">
                                     <div className="hud-label mb-1">Velocidad</div>
@@ -249,7 +245,6 @@ export const FleetMapPage: React.FC = () => {
                                 <div className="font-mono text-sm text-hud-dim tnum">{selected.lat.toFixed(5)}, {selected.lng.toFixed(5)}</div>
                             </div>
 
-                            {/* Open live tools */}
                             <div className="hud-label mb-2">Abrir en directo</div>
                             <div className="grid gap-2">
                                 <Link to="/services/driver" className="flex items-center gap-3 px-4 py-3 border border-hud-line hover:border-amber-400 hover:text-amber-400 transition-colors font-mono uppercase tracking-widest text-xs">
