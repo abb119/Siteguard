@@ -41,14 +41,18 @@ const StatsPanel: React.FC<{ latestResultRef: React.MutableRefObject<FrameResult
         counts[key] = (counts[key] || 0) + 1;
         totalDetections++;
 
-        if (cls.startsWith("no ") || cls.startsWith("no_")) {
+        // Non-compliant classes use several naming styles: "no-hardhat",
+        // "NO-Safety Vest", "no_vest", "without_helmet"...
+        if (cls.startsWith("no-") || cls.startsWith("no_") || cls.startsWith("no ") || cls.startsWith("without")) {
           violations++;
         }
       });
 
-      // Calculate simple compliance score (100 - (violations/people * 50)) or similar
-
-      const calculatedScore = Math.max(0, 100 - (violations * 20)); // Arbitrary penalty
+      // Prefer the violations the backend already flagged (compliance service);
+      // fall back to the class-name count above.
+      const backendViolations = result.violations?.length ?? 0;
+      const totalViolations = Math.max(violations, backendViolations);
+      const calculatedScore = Math.max(0, 100 - (totalViolations * 20));
 
       setStats({ counts, compliance: calculatedScore });
     }, 200); // Update stats every 200ms
