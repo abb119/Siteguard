@@ -794,6 +794,8 @@ async def websocket_front_cam_stream(websocket: WebSocket):
                 "pedestrians_count": results.get("pedestrians_count", 0),
                 "vehicles_ahead": results.get("vehicles_ahead", []),
                 "traffic_light": results.get("traffic_light"),
+                "lead_vehicle": results.get("lead_vehicle"),
+                "ttc": results.get("ttc"),
             }
             
             await websocket.send_json(response)

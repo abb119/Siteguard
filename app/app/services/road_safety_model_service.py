@@ -11,6 +11,7 @@ from PIL import Image
 import io
 import torch
 import numpy as np
+import cv2
 
 
 class RoadSafetyModel:
@@ -75,101 +76,142 @@ class RoadSafetyModel:
         distance = (real_width * focal) / bbox_width
         return round(distance, 1)
     
+    def _traffic_light_color(self, img_rgb, box) -> str:
+        """Classify a traffic light's state by color (HSV) — no extra model."""
+        try:
+            x1, y1, x2, y2 = [int(v) for v in box]
+            crop = img_rgb[max(0, y1):y2, max(0, x1):x2]
+            if crop.size == 0:
+                return "detected"
+            hsv = cv2.cvtColor(crop, cv2.COLOR_RGB2HSV)
+            h, s, v = cv2.split(hsv)
+            bright = (v > 120) & (s > 80)
+            if int(bright.sum()) < 8:
+                return "detected"
+            hb = h[bright]
+            red = int((((hb < 10) | (hb > 160))).sum())
+            amber = int(((hb >= 15) & (hb < 35)).sum())
+            green = int(((hb >= 40) & (hb < 90)).sum())
+            m = max(red, amber, green)
+            if m == 0:
+                return "detected"
+            return "red" if m == red else "amber" if m == amber else "green"
+        except Exception:
+            return "detected"
+
     def analyze_front_camera(self, image_bytes: bytes, frame_width: int = 640) -> Dict[str, Any]:
-        """
-        Analyze front camera for road hazards.
-        """
+        """Analyze front camera: pedestrians, lead-vehicle FCW (TTC), traffic-light state."""
         image = Image.open(io.BytesIO(image_bytes))
-        
-        results = {
+        img_rgb = np.array(image.convert("RGB"))
+        h_img, w_img = img_rgb.shape[:2]
+
+        results: Dict[str, Any] = {
             "detections": [],
             "alerts": [],
             "risk_level": "low",
             "traffic_light": None,
             "pedestrians_count": 0,
             "vehicles_ahead": [],
+            "lead_vehicle": None,
+            "ttc": None,
         }
-        
+
         if not self.model:
             return results
-        
+
         try:
             yolo_results = self.model(image, device=self.device, verbose=False, conf=0.4)
-            
-            if yolo_results and len(yolo_results) > 0:
-                boxes = yolo_results[0].boxes
-                
-                for box in boxes:
-                    cls_id = int(box.cls[0])
-                    if cls_id not in self.COCO_CLASSES:
-                        continue
-                    
-                    class_name = self.COCO_CLASSES[cls_id]
-                    conf = float(box.conf[0])
-                    x1, y1, x2, y2 = box.xyxy[0].tolist()
-                    bbox_width = x2 - x1
-                    
-                    # Estimate distance
-                    distance = self.estimate_distance(class_name, bbox_width, frame_width)
-                    
-                    detection = {
-                        "box": [x1, y1, x2, y2],
-                        "class_name": class_name,
-                        "confidence": conf,
-                        "distance_m": distance,
-                    }
-                    results["detections"].append(detection)
-                    
-                    # Generate alerts based on detection
-                    if class_name == "person":
-                        results["pedestrians_count"] += 1
-                        if distance < 15:
-                            results["alerts"].append({
-                                "type": "PEDESTRIAN",
-                                "level": "danger" if distance < 8 else "warning",
-                                "message": f"¡Peatón a {distance}m!",
-                                "distance": distance,
-                            })
-                            results["risk_level"] = "high"
-                    
-                    elif class_name == "traffic_light":
-                        results["traffic_light"] = "detected"
-                        # Note: COCO doesn't distinguish red/green, would need specific model
-                    
-                    elif class_name == "stop_sign":
+            boxes = yolo_results[0].boxes if yolo_results else []
+            lead: Tuple[float, str] | None = None  # (distance, type)
+
+            for box in boxes:
+                cls_id = int(box.cls[0])
+                if cls_id not in self.COCO_CLASSES:
+                    continue
+                class_name = self.COCO_CLASSES[cls_id]
+                conf = float(box.conf[0])
+                x1, y1, x2, y2 = box.xyxy[0].tolist()
+                bbox_width = x2 - x1
+                distance = self.estimate_distance(class_name, bbox_width, frame_width)
+                cx = (x1 + x2) / 2.0
+
+                detection = {"box": [x1, y1, x2, y2], "class_name": class_name,
+                             "confidence": conf, "distance_m": distance}
+
+                if class_name == "person":
+                    results["pedestrians_count"] += 1
+                    if distance < 15:
                         results["alerts"].append({
-                            "type": "SIGN",
-                            "level": "warning",
-                            "message": "Señal de STOP detectada",
-                            "distance": distance,
+                            "type": "PEDESTRIAN",
+                            "level": "danger" if distance < 8 else "warning",
+                            "message": f"¡Peatón a {distance}m!", "distance": distance,
                         })
-                    
-                    elif class_name in ["car", "truck", "bus", "motorcycle"]:
-                        results["vehicles_ahead"].append({
-                            "type": class_name,
-                            "distance": distance,
-                        })
-                        if distance < 5:
-                            results["alerts"].append({
-                                "type": "VEHICLE",
-                                "level": "danger",
-                                "message": f"¡Vehículo muy cerca ({distance}m)!",
-                                "distance": distance,
-                            })
-                            if results["risk_level"] != "high":
-                                results["risk_level"] = "medium"
-                    
-                    elif class_name == "bicycle":
-                        results["alerts"].append({
-                            "type": "CYCLIST",
-                            "level": "warning",
-                            "message": f"Ciclista a {distance}m",
-                            "distance": distance,
-                        })
-        
+                        results["risk_level"] = "high"
+
+                elif class_name == "traffic_light":
+                    state = self._traffic_light_color(img_rgb, (x1, y1, x2, y2))
+                    results["traffic_light"] = state
+                    detection["state"] = state
+                    if state == "red":
+                        results["alerts"].append({"type": "TRAFFIC_LIGHT", "level": "danger",
+                                                  "message": "🚦 Semáforo en ROJO"})
+                        if results["risk_level"] == "low":
+                            results["risk_level"] = "medium"
+
+                elif class_name == "stop_sign":
+                    results["alerts"].append({"type": "SIGN", "level": "warning",
+                                              "message": "Señal de STOP", "distance": distance})
+
+                elif class_name in ("car", "truck", "bus", "motorcycle"):
+                    results["vehicles_ahead"].append({"type": class_name, "distance": distance})
+                    # Lead vehicle = ahead, in the central lane, lower half of frame
+                    in_lane = (0.3 * w_img < cx < 0.7 * w_img) and (y2 > 0.4 * h_img)
+                    if in_lane and (lead is None or distance < lead[0]):
+                        lead = (distance, class_name)
+
+                elif class_name == "bicycle":
+                    results["alerts"].append({"type": "CYCLIST", "level": "warning",
+                                              "message": f"Ciclista a {distance}m", "distance": distance})
+
+                results["detections"].append(detection)
+
+            # ── Forward Collision Warning (lead vehicle, with TTC) ──
+            if lead is not None:
+                dist = lead[0]
+                closing = None
+                ttc = None
+                if self.prev_front_distance is not None:
+                    closing = (self.prev_front_distance - dist) / self.frame_interval  # m/s (+approaching)
+                    if closing > 0.5:
+                        ttc = round(dist / closing, 1)
+                self.prev_front_distance = dist
+                results["lead_vehicle"] = {
+                    "type": lead[1], "distance": dist,
+                    "closing_kmh": round((closing or 0) * 3.6, 0),
+                    "ttc": ttc,
+                }
+                results["ttc"] = ttc
+
+                if (ttc is not None and ttc < 2.0) or dist < 5:
+                    results["alerts"].append({
+                        "type": "FORWARD_COLLISION", "level": "danger",
+                        "message": f"¡FRENA! Colisión en {ttc}s" if ttc else f"¡Vehículo a {dist}m!",
+                        "distance": dist,
+                    })
+                    results["risk_level"] = "high"
+                elif (ttc is not None and ttc < 4.0) or dist < 12:
+                    results["alerts"].append({
+                        "type": "TAILGATING", "level": "warning",
+                        "message": f"Mantén distancia ({dist}m)", "distance": dist,
+                    })
+                    if results["risk_level"] == "low":
+                        results["risk_level"] = "medium"
+            else:
+                self.prev_front_distance = None
+
         except Exception as e:
             print(f"Front camera analysis error: {e}")
-        
+
         return results
     
     def analyze_rear_camera(self, image_bytes: bytes, frame_width: int = 640) -> Dict[str, Any]:

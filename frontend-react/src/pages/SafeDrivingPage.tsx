@@ -34,6 +34,8 @@ type FrontCamResult = {
     pedestrians_count: number;
     vehicles_ahead: Array<{ type: string; distance: number }>;
     traffic_light: string | null;
+    lead_vehicle: { type: string; distance: number; closing_kmh: number; ttc: number | null } | null;
+    ttc: number | null;
     latency_ms: number;
 };
 
@@ -57,6 +59,8 @@ type FrontHudData = {
     pedestrians: number;
     vehicles: number;
     riskLevel: string;
+    trafficLight: string | null;
+    ttc: number | null;
 };
 
 type RearHudData = {
@@ -324,15 +328,21 @@ const CameraFeed: React.FC<{
                                             <div className="flex items-center gap-2">
                                                 <Car size={16} className="text-cyan-400" />
                                                 <span className="text-sm font-mono">
-                                                    {(hudData as FrontHudData).distance
-                                                        ? `${(hudData as FrontHudData).distance}m`
-                                                        : "—"}
+                                                    {(hudData as FrontHudData).distance ? `${(hudData as FrontHudData).distance}m` : "—"}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Users size={16} className="text-yellow-400" />
                                                 <span className="text-sm font-mono">{(hudData as FrontHudData).pedestrians}</span>
                                             </div>
+                                            {(hudData as FrontHudData).ttc != null && (
+                                                <span className={`text-sm font-mono font-bold ${(hudData as FrontHudData).ttc! < 2 ? "text-red-400" : (hudData as FrontHudData).ttc! < 4 ? "text-orange-400" : "text-green-400"}`}>
+                                                    TTC {(hudData as FrontHudData).ttc}s
+                                                </span>
+                                            )}
+                                            {(hudData as FrontHudData).trafficLight && (
+                                                <span className="w-3 h-3 rounded-full inline-block" title={`Semáforo: ${(hudData as FrontHudData).trafficLight}`} style={{ background: (hudData as FrontHudData).trafficLight === "red" ? "#ff3b30" : (hudData as FrontHudData).trafficLight === "amber" ? "#ffb000" : (hudData as FrontHudData).trafficLight === "green" ? "#00d97e" : "#86847a", boxShadow: "0 0 8px currentColor" }} />
+                                            )}
                                         </div>
                                         <div className={`px-2 py-1 rounded text-xs font-bold ${(hudData as FrontHudData).riskLevel === "high" ? "bg-red-500" :
                                             (hudData as FrontHudData).riskLevel === "medium" ? "bg-orange-500" : "bg-green-500"
@@ -403,6 +413,17 @@ const CameraFeed: React.FC<{
     );
 };
 
+// Unified driving recommendation from both cameras
+function getRecommendation(front: FrontCamResult | null, rear: RearCamResult | null): { text: string; sev: "danger" | "warning" | "ok" } {
+    if (front?.alerts?.some((a) => a.type === "FORWARD_COLLISION")) return { text: "Frena — colisión inminente", sev: "danger" };
+    if (front?.traffic_light === "red") return { text: "Semáforo en rojo", sev: "danger" };
+    if (front?.alerts?.some((a) => a.type === "PEDESTRIAN" && a.level === "danger")) return { text: "Peatón — reduce", sev: "danger" };
+    if (front?.alerts?.some((a) => a.type === "TAILGATING")) return { text: "Mantén distancia", sev: "warning" };
+    if (rear && !rear.safe_to_maneuver) return { text: "No adelantes", sev: "warning" };
+    if (front?.alerts?.some((a) => a.type === "CYCLIST")) return { text: "Ciclista cerca", sev: "warning" };
+    return { text: "Vía libre", sev: "ok" };
+}
+
 // Main Page Component
 export const SafeDrivingPage: React.FC = () => {
     const [frontResult, setFrontResult] = useState<FrontCamResult | null>(null);
@@ -452,6 +473,19 @@ export const SafeDrivingPage: React.FC = () => {
                         {audioEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
                     </button>
                 </div>
+                {/* Unified driving recommendation */}
+                {(() => {
+                    const rec = getRecommendation(frontResult, rearResult);
+                    const cls = rec.sev === "danger" ? "border-alarm-400 text-alarm-400" : rec.sev === "warning" ? "border-amber-400 text-amber-400" : "border-phosphor-400 text-phosphor-400";
+                    return (
+                        <div className={`hud-panel border-l-2 ${cls} p-4 mb-6 flex items-center gap-3`}>
+                            {rec.sev === "ok" ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
+                            <span className="hud-label">Recomendación</span>
+                            <span className="font-mono uppercase tracking-wide text-lg ml-auto">{rec.text}</span>
+                        </div>
+                    );
+                })()}
+
                 {/* Dual Camera Grid */}
                 <div className="grid lg:grid-cols-2 gap-6 mb-6">
                     <div>
@@ -462,10 +496,12 @@ export const SafeDrivingPage: React.FC = () => {
                             accentColor="bg-blue-600"
                             hudType="front"
                             hudData={frontResult ? {
-                                distance: frontResult.vehicles_ahead?.[0]?.distance ?? null,
+                                distance: frontResult.lead_vehicle?.distance ?? frontResult.vehicles_ahead?.[0]?.distance ?? null,
                                 pedestrians: frontResult.pedestrians_count,
                                 vehicles: frontResult.vehicles_ahead?.length ?? 0,
-                                riskLevel: frontResult.risk_level
+                                riskLevel: frontResult.risk_level,
+                                trafficLight: frontResult.traffic_light,
+                                ttc: frontResult.ttc,
                             } : undefined}
                         />
                     </div>
@@ -535,6 +571,20 @@ export const SafeDrivingPage: React.FC = () => {
                                     <span className="text-sm text-slate-400">Vehículos</span>
                                 </div>
                                 <span className="text-2xl font-bold">{frontResult?.vehicles_ahead?.length || 0}</span>
+                            </div>
+                            <div className="border border-hud-line p-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="w-3 h-3 rounded-full inline-block" style={{ background: frontResult?.traffic_light === "red" ? "#ff3b30" : frontResult?.traffic_light === "amber" ? "#ffb000" : frontResult?.traffic_light === "green" ? "#00d97e" : "#3a3a40" }} />
+                                    <span className="text-sm text-slate-400">Semáforo</span>
+                                </div>
+                                <span className="text-lg font-mono uppercase">{frontResult?.traffic_light ?? "—"}</span>
+                            </div>
+                            <div className="border border-hud-line p-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <AlertTriangle size={16} className="text-orange-400" />
+                                    <span className="text-sm text-slate-400">Colisión (TTC)</span>
+                                </div>
+                                <span className="text-2xl font-bold">{frontResult?.ttc != null ? `${frontResult.ttc}s` : "—"}</span>
                             </div>
                         </div>
                     </div>
