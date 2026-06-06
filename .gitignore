@@ -96,3 +96,9 @@ error.log
 
 app/app/static/violations/
 app/app/static/driver_events/
+
+# ML eval artifacts (downloadable / regenerated)
+datasets/
+runs/
+# but DO keep the committed evaluation figures for the report
+!docs/eval/confusion_matrix.png

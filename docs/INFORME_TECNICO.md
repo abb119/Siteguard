@@ -60,24 +60,52 @@ Métricas estándar de detección con la validación integrada de Ultralytics
 - **Precision, Recall, mAP@50 y mAP@50-95** (global y por clase).
 - **Matriz de confusión** y **curva Precision-Recall** (PNG generados en `runs/`).
 
-Reproducir:
+**Reproducir (sin API key)** — usa un mirror público del split de test (82 imágenes):
 ```bash
-# 1) Descargar el dataset etiquetado (Construction Site Safety, Roboflow)
-ROBOFLOW_API_KEY=xxxx python ml/download_dataset.py   # o ver ml/data_ppe.yaml
-# 2) Evaluar
-python ml/evaluate.py --model siteguard_model/yolov8n_ppe/weights/best.pt --data ml/data_ppe.yaml
+python ml/download_test_set.py
+python ml/evaluate.py --data datasets/construction-site-safety/data.yaml --split test
 ```
 
-> Resultados (rellenar tras ejecutar con el dataset):
->
-> | Métrica | Valor |
-> |---|---|
-> | Precision | _por completar_ |
-> | Recall | _por completar_ |
-> | mAP@50 | _por completar_ |
-> | mAP@50-95 | _por completar_ |
->
-> Adjuntar `confusion_matrix.png` y `PR_curve.png`.
+### Resultados — modelo desplegado `best.pt` (82 imágenes de test, 760 instancias, GPU RTX 2070)
+
+| Métrica | Valor |
+|---|---|
+| Precision (mP) | **0.718** |
+| Recall (mR) | **0.496** |
+| mAP@50 | **0.525** |
+| mAP@50-95 | **0.304** |
+| Velocidad inferencia (GPU) | 15.6 ms/img |
+
+**Por clase:**
+
+| Clase | Inst. | P | R | mAP@50 | mAP@50-95 |
+|---|---:|---:|---:|---:|---:|
+| Hardhat | 110 | 0.98 | 0.71 | 0.82 | 0.52 |
+| Mask | 28 | 0.95 | 0.57 | 0.65 | 0.35 |
+| NO-Hardhat | 41 | 0.55 | 0.44 | 0.34 | 0.12 |
+| NO-Mask | 79 | 0.42 | 0.35 | 0.26 | 0.05 |
+| NO-Safety Vest | 90 | 0.70 | 0.44 | 0.45 | 0.15 |
+| Person | 174 | 0.83 | 0.62 | 0.68 | 0.49 |
+| Safety Cone | 92 | 0.58 | 0.01 | 0.09 | 0.04 |
+| Safety Vest | 61 | 0.68 | 0.68 | 0.68 | 0.38 |
+| machinery | 44 | 0.79 | 0.73 | 0.77 | 0.67 |
+| vehicle | 41 | 0.71 | 0.42 | 0.53 | 0.28 |
+
+> La clase "utility pole" no tiene instancias en este mirror de test (el modelo
+> la incluye, pero el dataset público no la trae).
+
+**Lectura:** el modelo es sólido en las clases frecuentes y bien definidas
+(**Hardhat** mAP@50 0.82, **machinery** 0.77, **Person** 0.68) y más débil en
+clases con pocas muestras o visualmente ambiguas (**Safety Cone**, **NO-Mask**).
+La recall global moderada (~0.50) indica margen de mejora reentrenando con más
+datos de las clases flojas. Las predicciones de *cumplimiento* (Hardhat/Vest)
+—las que más usa la app— son las más fiables.
+
+Gráficas generadas (`docs/eval/`):
+
+![Matriz de confusión](eval/confusion_matrix.png)
+
+![Curva Precision-Recall](eval/PR_curve.png)
 
 ---
 
