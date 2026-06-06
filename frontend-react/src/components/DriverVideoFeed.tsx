@@ -36,6 +36,7 @@ type DriverResult = {
     low_light?: boolean;
     camera_blocked?: boolean;
     eye_reliable?: boolean;
+    seatbelt?: "worn" | "absent" | "unknown";
     alerts?: DmsAlert[];
 };
 
@@ -60,6 +61,7 @@ const DEFAULT_STATUS: DriverResult = {
     low_light: false,
     camera_blocked: false,
     eye_reliable: true,
+    seatbelt: "unknown",
     alerts: [],
 };
 
@@ -423,6 +425,7 @@ export const DriverVideoFeed: React.FC = () => {
     const attentionBad = eyesOffRoad || lookingDown || !status.face_found;
     const lowLight = status.low_light === true;
     const eyeDegraded = status.eye_reliable === false;
+    const seatbelt = status.seatbelt ?? "unknown";
 
     return (
         <div className="space-y-6">
@@ -596,6 +599,12 @@ export const DriverVideoFeed: React.FC = () => {
                                 <span className="hud-label">Seguimiento ocular</span>
                                 <span className={eyeDegraded ? "text-alarm-400" : "text-phosphor-400"}>
                                     {eyeDegraded ? "Degradado" : "Fiable"}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="hud-label">Cinturón</span>
+                                <span className={seatbelt === "absent" ? "text-alarm-400" : seatbelt === "worn" ? "text-phosphor-400" : "text-hud-dim"}>
+                                    {seatbelt === "absent" ? "Sin cinturón" : seatbelt === "worn" ? "Puesto" : "—"}
                                 </span>
                             </div>
                         </div>

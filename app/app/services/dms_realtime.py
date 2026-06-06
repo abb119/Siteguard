@@ -67,6 +67,8 @@ class DmsConfig:
     lookdown_min_sec: float = 1.2
     # Drinking: an object (cup/bottle) sustained near the face
     drinking_min_sec: float = 0.8
+    # Seatbelt: sustained "no seatbelt" before alerting
+    seatbelt_min_sec: float = 1.5
     # Hysteresis: how long a condition must clear before the alert drops
     alert_release_sec: float = 1.0
     # Smoothing factor for EMA (0..1, higher = snappier)
@@ -190,6 +192,7 @@ class DmsSession:
         self._sm_distract = _SustainedFlag(self.cfg.distract_min_sec, self.cfg.alert_release_sec)
         self._sm_lookdown = _SustainedFlag(self.cfg.lookdown_min_sec, self.cfg.alert_release_sec)
         self._sm_drinking = _SustainedFlag(self.cfg.drinking_min_sec, self.cfg.alert_release_sec)
+        self._sm_no_seatbelt = _SustainedFlag(self.cfg.seatbelt_min_sec, self.cfg.alert_release_sec)
         self._sm_noface = _SustainedFlag(2.0, 1.0)
         self._sm_blocked = _SustainedFlag(self.cfg.blocked_min_sec, 0.5)
 
@@ -204,7 +207,8 @@ class DmsSession:
         self.low_light: bool = False
 
     # ── Public API ─────────────────────────────────────────────────────────
-    def process(self, frame_bgr, t: float, objects: Optional[List[Dict]] = None) -> Dict:
+    def process(self, frame_bgr, t: float, objects: Optional[List[Dict]] = None,
+                seatbelt: Optional[bool] = None) -> Dict:
         if self.start_ts is None:
             self.start_ts = t
 
@@ -262,6 +266,7 @@ class DmsSession:
         lookdown_cond = (
             self._pitch_ema is not None and self._pitch_ema > self.cfg.pitch_down_deg
         )
+        no_seatbelt_cond = seatbelt is False  # False = belt absent (None = unknown)
 
         # Hysteresis-filtered alerts
         a_drowsy = self._sm_drowsy.update(drowsy_cond, t)
@@ -270,6 +275,7 @@ class DmsSession:
         a_distract = self._sm_distract.update(distract_cond, t)
         a_lookdown = self._sm_lookdown.update(lookdown_cond, t)
         a_drinking = self._sm_drinking.update(drinking_cond, t)
+        a_no_seatbelt = self._sm_no_seatbelt.update(no_seatbelt_cond, t)
 
         # Yawn rising-edge count
         if a_yawn and not self._was_yawning:
@@ -291,6 +297,8 @@ class DmsSession:
             a_distract=a_distract,
             a_lookdown=a_lookdown,
             a_drinking=a_drinking,
+            a_no_seatbelt=a_no_seatbelt,
+            seatbelt=seatbelt,
             phone_detected=phone_detected,
             eye_reliable=self.eye_reliable,
             low_light=self.low_light,
@@ -351,6 +359,7 @@ class DmsSession:
             "low_light": False,
             "camera_blocked": True,
             "eye_reliable": self.eye_reliable,
+            "seatbelt": "unknown",
             "alerts": [{
                 "type": "CAMERA_BLOCKED", "severity": "high",
                 "message": "Cámara bloqueada u oscura",
@@ -491,6 +500,8 @@ class DmsSession:
         a_distract = k["a_distract"]
         a_lookdown = k["a_lookdown"]
         a_drinking = k["a_drinking"]
+        a_no_seatbelt = k["a_no_seatbelt"]
+        seatbelt = k["seatbelt"]
         phone = k["phone_detected"]
         perclos = k["perclos"]
         calibrating = k["calibrating"]
@@ -514,6 +525,8 @@ class DmsSession:
                            "message": "Mirando hacia abajo"})
         if phone:
             alerts.append({"type": "PHONE", "severity": "high", "message": "Uso de móvil"})
+        if a_no_seatbelt and face_found:
+            alerts.append({"type": "NO_SEATBELT", "severity": "high", "message": "Sin cinturón"})
         if a_drinking:
             alerts.append({"type": "DRINKING", "severity": "medium",
                            "message": "Bebiendo al volante"})
@@ -531,7 +544,7 @@ class DmsSession:
         top = max((sev_rank.get(a["severity"], 0) for a in alerts), default=0)
         risk_level = {3: "high", 2: "high", 1: "medium", 0: "low"}[top]
         # "Alert" = awake AND attentive (eyes on road, no phone/drink)
-        is_alert = not (a_drowsy or a_micro or a_distract or a_lookdown or phone or a_drinking)
+        is_alert = not (a_drowsy or a_micro or a_distract or a_lookdown or phone or a_drinking or (a_no_seatbelt and face_found))
 
         # Legacy-compatible drowsiness string + confidence
         if calibrating:
@@ -600,6 +613,7 @@ class DmsSession:
             "low_light": low_light,
             "camera_blocked": False,
             "eye_reliable": eye_reliable,
+            "seatbelt": "worn" if seatbelt is True else "absent" if seatbelt is False else "unknown",
             "alerts": alerts,
         }
 

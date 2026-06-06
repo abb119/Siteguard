@@ -491,6 +491,15 @@ async def websocket_driver_stream_v2(websocket: WebSocket, db: AsyncSession = De
         print(f"DMS v2: phone model unavailable ({exc})", flush=True)
         phone_model = None
 
+    # Optional dedicated seatbelt model (disabled if no weights file present)
+    last_seatbelt = None
+    try:
+        from app.app.services.seatbelt_service import get_seatbelt_detector
+        seatbelt_detector = get_seatbelt_detector()
+    except Exception as exc:  # pragma: no cover - optional
+        print(f"DMS v2: seatbelt detector unavailable ({exc})", flush=True)
+        seatbelt_detector = None
+
     try:
         while True:
             message = await websocket.receive_text()
@@ -529,8 +538,12 @@ async def websocket_driver_stream_v2(websocket: WebSocket, db: AsyncSession = De
             if phone_model is not None and frame_counter % 3 == 0:
                 last_objects = await loop.run_in_executor(None, _detect_distraction_objects, phone_model, frame)
 
+            # Seatbelt detection every 5th frame (separate, optional model)
+            if seatbelt_detector is not None and frame_counter % 5 == 0:
+                last_seatbelt = await loop.run_in_executor(None, seatbelt_detector.detect, frame)
+
             start = time.time()
-            result = await loop.run_in_executor(None, session.process, frame, t, last_objects)
+            result = await loop.run_in_executor(None, session.process, frame, t, last_objects, last_seatbelt)
             latency_ms = (time.time() - start) * 1000.0
 
             # Persist incidents (rising-edge + cooldown) with a snapshot.
