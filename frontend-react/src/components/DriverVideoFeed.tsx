@@ -65,7 +65,7 @@ const DEFAULT_STATUS: DriverResult = {
     alerts: [],
 };
 
-export const DriverVideoFeed: React.FC = () => {
+export const DriverVideoFeed: React.FC<{ driverId?: string }> = ({ driverId }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const displayCanvasRef = useRef<HTMLCanvasElement>(null);
     const wsRef = useRef<WebSocket | null>(null);
@@ -181,7 +181,7 @@ export const DriverVideoFeed: React.FC = () => {
         // var (which may be set in the Vercel dashboard with the legacy path) and
         // force the path to /ws/driver-stream-v2 so a stale env value can't pin
         // us to the old stream. session_id groups events for the trip report.
-        const sid = getSessionId();
+        const sid = driverId || getSessionId();
         const DRIVER_WS_PATH = "/ws/driver-stream-v2";
         const rawWs = import.meta.env.VITE_DRIVER_WS_URL;
         let wsUrl = `ws://127.0.0.1:8000${DRIVER_WS_PATH}?session_id=${sid}`;
@@ -326,7 +326,7 @@ export const DriverVideoFeed: React.FC = () => {
             wsRef.current = null;
             cancelAnimationFrame(animationFrameId);
         };
-    }, [activeMode, isPaused, playAlarm]);
+    }, [activeMode, isPaused, playAlarm, driverId]);
 
     // Render loop
     useEffect(() => {

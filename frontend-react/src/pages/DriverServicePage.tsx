@@ -1,9 +1,13 @@
 import React from "react";
-import { Truck, Video, AlertTriangle, Settings, Car, Map as MapIcon } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { Truck, Video, AlertTriangle, Settings, Car, Map as MapIcon, User } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
 import { DriverVideoFeed } from "../components/DriverVideoFeed";
 
 export const DriverServicePage: React.FC = () => {
+    const [params] = useSearchParams();
+    const driver = params.get("driver");
+    const name = params.get("name");
     return (
         <ServiceLayout
             serviceName="Sistema ADAS"
@@ -26,8 +30,18 @@ export const DriverServicePage: React.FC = () => {
                     </p>
                 </div>
 
+                {driver && (
+                    <div className="mb-6 flex items-center gap-3 hud-panel border-l-2 border-amber-400 p-3">
+                        <User size={18} className="text-amber-400" />
+                        <span className="font-mono uppercase tracking-wide text-sm">
+                            Monitorizando conductor: <span className="text-amber-400">{name || driver}</span>
+                        </span>
+                        <span className="hud-label ml-auto">Los eventos se registran bajo {driver}</span>
+                    </div>
+                )}
+
                 {/* Driver Video Feed Component with real-time analysis */}
-                <DriverVideoFeed />
+                <DriverVideoFeed driverId={driver ?? undefined} />
             </div>
         </ServiceLayout>
     );

@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 import { Truck, Video, Car, AlertTriangle, Settings, Map as MapIcon, Gauge, X, Activity } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
 import { ROUTES } from "../data/alicanteRoutes";
+import { listDriverSessions, getDriverReport, listDriverEvents } from "../lib/api";
 
 const NAV = [
     { to: "/services/driver", label: "Monitor Conductor", icon: Video },
@@ -117,6 +118,9 @@ export const FleetMapPage: React.FC = () => {
     const [drivers, setDrivers] = useState<Driver[]>(driversRef.current);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [tab, setTab] = useState<"activos" | "ranking">("activos");
+    // Real per-driver data from the backend (events caused via the live monitor)
+    const [realData, setRealData] = useState<Record<string, { score: number; incidents: number }>>({});
+    const [selEvents, setSelEvents] = useState<Array<{ id: number; event_type: string; timestamp: string }>>([]);
 
     useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
 
@@ -170,10 +174,45 @@ export const FleetMapPage: React.FC = () => {
         if (d) mapRef.current.panTo([d.lat, d.lng]);
     }, [selectedId]);
 
+    // Poll real backend data for drivers that have caused events via the monitor
+    useEffect(() => {
+        const ids = new Set(driversRef.current.map((d) => d.id));
+        let alive = true;
+        const load = async () => {
+            try {
+                const sessions = await listDriverSessions();
+                const relevant = sessions.filter((s) => s.session_id && ids.has(s.session_id) && s.events > 0);
+                const entries = await Promise.all(
+                    relevant.map(async (s) => {
+                        try {
+                            const rep = await getDriverReport(s.session_id);
+                            return [s.session_id, { score: rep.safety_score, incidents: rep.total_events }] as const;
+                        } catch { return null; }
+                    })
+                );
+                if (alive) setRealData(Object.fromEntries(entries.filter(Boolean) as [string, { score: number; incidents: number }][]));
+            } catch { /* backend offline → stay simulated */ }
+        };
+        load();
+        const iv = setInterval(load, 5000);
+        return () => { alive = false; clearInterval(iv); };
+    }, []);
+
+    // Real event list for the selected driver (drawer)
+    useEffect(() => {
+        if (!selectedId) { setSelEvents([]); return; }
+        let alive = true;
+        listDriverEvents(selectedId).then((e) => { if (alive) setSelEvents(e); }).catch(() => { });
+        return () => { alive = false; };
+    }, [selectedId, realData]);
+
     const selected = drivers.find((d) => d.id === selectedId) || null;
-    const ranked = [...drivers].sort((a, b) => b.score - a.score);
+    // Displayed score/incidents: real backend data overrides the simulation
+    const dispScore = (d: Driver) => realData[d.id]?.score ?? d.score;
+    const dispInc = (d: Driver) => realData[d.id]?.incidents ?? d.incidents;
+    const ranked = [...drivers].sort((a, b) => dispScore(b) - dispScore(a));
     const rankOf = (id: string) => ranked.findIndex((d) => d.id === id);
-    const avgScore = Math.round(drivers.reduce((s, d) => s + d.score, 0) / drivers.length);
+    const avgScore = Math.round(drivers.reduce((s, d) => s + dispScore(d), 0) / drivers.length);
     const counts = {
         high: drivers.filter((d) => d.risk === "high").length,
         active: drivers.filter((d) => d.alert).length,
@@ -256,10 +295,10 @@ export const FleetMapPage: React.FC = () => {
                                     <div className="flex-1 min-w-0">
                                         <div className="font-mono text-sm truncate">{d.name}</div>
                                         <div className="h-1 bg-hud-bg mt-1.5">
-                                            <div className={`h-1 ${d.score >= 80 ? "bg-phosphor-400" : d.score >= 50 ? "bg-amber-400" : "bg-alarm-400"}`} style={{ width: `${d.score}%` }} />
+                                            <div className={`h-1 ${dispScore(d) >= 80 ? "bg-phosphor-400" : dispScore(d) >= 50 ? "bg-amber-400" : "bg-alarm-400"}`} style={{ width: `${dispScore(d)}%` }} />
                                         </div>
                                     </div>
-                                    <span className={`font-mono text-sm font-bold tnum ${scoreText(d.score)}`}>{Math.round(d.score)}</span>
+                                    <span className={`font-mono text-sm font-bold tnum ${scoreText(dispScore(d))}`}>{Math.round(dispScore(d))}</span>
                                 </button>
                             ))}
                         </div>
@@ -290,8 +329,8 @@ export const FleetMapPage: React.FC = () => {
                             {/* Safety score + ranking */}
                             <div className="grid grid-cols-2 gap-px bg-hud-line border border-hud-line mb-4">
                                 <div className="bg-hud-panel p-4">
-                                    <div className="hud-label mb-1">Safety score</div>
-                                    <div className={`font-mono text-3xl font-bold tnum ${scoreText(selected.score)}`}>{Math.round(selected.score)}</div>
+                                    <div className="hud-label mb-1">Safety score{realData[selected.id] ? " (real)" : ""}</div>
+                                    <div className={`font-mono text-3xl font-bold tnum ${scoreText(dispScore(selected))}`}>{Math.round(dispScore(selected))}</div>
                                 </div>
                                 <div className="bg-hud-panel p-4">
                                     <div className="hud-label mb-1">Ranking flota</div>
@@ -300,9 +339,9 @@ export const FleetMapPage: React.FC = () => {
                             </div>
 
                             {/* Badges */}
-                            {badges(selected, rankOf(selected.id)).length > 0 && (
+                            {badges({ ...selected, score: dispScore(selected), incidents: dispInc(selected) }, rankOf(selected.id)).length > 0 && (
                                 <div className="flex flex-wrap gap-2 mb-4">
-                                    {badges(selected, rankOf(selected.id)).map((b) => (
+                                    {badges({ ...selected, score: dispScore(selected), incidents: dispInc(selected) }, rankOf(selected.id)).map((b) => (
                                         <span key={b} className="px-2 py-1 border border-amber-400/40 text-amber-400 font-mono text-[11px] uppercase tracking-wider">{b}</span>
                                     ))}
                                 </div>
@@ -326,7 +365,7 @@ export const FleetMapPage: React.FC = () => {
                                 </div>
                                 <div className="bg-hud-panel p-4">
                                     <div className="hud-label mb-1">Incidentes</div>
-                                    <div className="font-mono text-xl font-bold tnum text-alarm-400">{selected.incidents}</div>
+                                    <div className="font-mono text-xl font-bold tnum text-alarm-400">{dispInc(selected)}</div>
                                 </div>
                             </div>
 
@@ -335,9 +374,24 @@ export const FleetMapPage: React.FC = () => {
                                 <div className="font-mono text-sm text-hud-dim tnum">{selected.lat.toFixed(5)}, {selected.lng.toFixed(5)}</div>
                             </div>
 
+                            {/* Real registered events for this driver */}
+                            {selEvents.length > 0 && (
+                                <div className="hud-panel p-4 mb-6">
+                                    <div className="hud-label mb-3">Eventos registrados ({selEvents.length})</div>
+                                    <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                                        {selEvents.slice(0, 20).map((e) => (
+                                            <div key={e.id} className="flex items-center justify-between text-xs font-mono border-b border-hud-line/40 pb-1.5">
+                                                <span className="text-alarm-400 uppercase tracking-wide">{e.event_type}</span>
+                                                <span className="text-hud-dim tnum">{new Date(e.timestamp).toLocaleTimeString()}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="hud-label mb-2">Abrir en directo</div>
                             <div className="grid gap-2">
-                                <Link to="/services/driver" className="flex items-center gap-3 px-4 py-3 border border-hud-line hover:border-amber-400 hover:text-amber-400 transition-colors font-mono uppercase tracking-widest text-xs">
+                                <Link to={`/services/driver?driver=${selected.id}&name=${encodeURIComponent(selected.name)}`} className="flex items-center gap-3 px-4 py-3 border border-hud-line hover:border-amber-400 hover:text-amber-400 transition-colors font-mono uppercase tracking-widest text-xs">
                                     <Video size={16} /> Monitor de Conductor
                                 </Link>
                                 <Link to="/services/driver/safe-driving" className="flex items-center gap-3 px-4 py-3 border border-hud-line hover:border-amber-400 hover:text-amber-400 transition-colors font-mono uppercase tracking-widest text-xs">
