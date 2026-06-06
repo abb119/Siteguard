@@ -45,6 +45,7 @@ type Driver = {
     id: string; name: string; vehicle: string;
     routeIdx: number; dist: number; lat: number; lng: number;
     speed: number; risk: Risk; fatigue: number; alert: string | null;
+    score: number; streak: number; incidents: number;
 };
 
 const NAMES = ["J. Martínez", "L. García", "M. López", "A. Sánchez", "C. Pérez",
@@ -55,6 +56,17 @@ const ALERTS = ["Somnolencia", "Mirada desviada", "Uso de móvil", "Mirando abaj
 
 const riskColor = (r: Risk) => (r === "high" ? "#ff3b30" : r === "medium" ? "#ffb000" : "#00d97e");
 const riskText = (r: Risk) => (r === "high" ? "text-alarm-400" : r === "medium" ? "text-amber-400" : "text-phosphor-400");
+const scoreText = (s: number) => (s >= 80 ? "text-phosphor-400" : s >= 50 ? "text-amber-400" : "text-alarm-400");
+const fmtStreak = (s: number) => (s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`);
+
+function badges(d: Driver, rank: number): string[] {
+    const out: string[] = [];
+    if (rank === 0) out.push("🏆 Líder de flota");
+    if (d.score >= 90) out.push("Conducción ejemplar");
+    if (d.incidents === 0) out.push("Sin incidentes");
+    if (d.streak >= 180) out.push(`Racha ${fmtStreak(d.streak)}`);
+    return out;
+}
 
 function makeDrivers(): Driver[] {
     return NAMES.map((name, i) => {
@@ -66,6 +78,7 @@ function makeDrivers(): Driver[] {
             routeIdx, dist, lat, lng,
             speed: 25 + Math.random() * 35, risk: "low",
             fatigue: Math.random() * 30, alert: null,
+            score: 80 + Math.random() * 20, streak: Math.floor(Math.random() * 240), incidents: 0,
         };
     });
 }
@@ -84,7 +97,14 @@ function step(d: Driver): Driver {
     if (alert) risk = Math.random() < 0.5 ? "high" : "medium";
     else if (fatigue > 65) risk = "medium";
 
-    return { ...d, dist, lat, lng, speed, fatigue, alert, risk };
+    // Cumulative safety score + streak (gamification)
+    const newIncident = !d.alert && !!alert;
+    const incidents = d.incidents + (newIncident ? 1 : 0);
+    const streak = newIncident ? 0 : d.streak + 1; // seconds without incident
+    let score = newIncident ? d.score - (risk === "high" ? 8 : 4) : d.score + 0.15;
+    score = Math.min(100, Math.max(0, score));
+
+    return { ...d, dist, lat, lng, speed, fatigue, alert, risk, score, streak, incidents };
 }
 
 export const FleetMapPage: React.FC = () => {
@@ -96,6 +116,7 @@ export const FleetMapPage: React.FC = () => {
 
     const [drivers, setDrivers] = useState<Driver[]>(driversRef.current);
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [tab, setTab] = useState<"activos" | "ranking">("activos");
 
     useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
 
@@ -150,6 +171,9 @@ export const FleetMapPage: React.FC = () => {
     }, [selectedId]);
 
     const selected = drivers.find((d) => d.id === selectedId) || null;
+    const ranked = [...drivers].sort((a, b) => b.score - a.score);
+    const rankOf = (id: string) => ranked.findIndex((d) => d.id === id);
+    const avgScore = Math.round(drivers.reduce((s, d) => s + d.score, 0) / drivers.length);
     const counts = {
         high: drivers.filter((d) => d.risk === "high").length,
         active: drivers.filter((d) => d.alert).length,
@@ -170,6 +194,10 @@ export const FleetMapPage: React.FC = () => {
                             <div className="text-hud-bone tnum text-lg">{drivers.length}</div>
                         </div>
                         <div className="bg-hud-panel px-4 py-2 text-center">
+                            <div className="hud-label">Score medio</div>
+                            <div className={`tnum text-lg ${scoreText(avgScore)}`}>{avgScore}</div>
+                        </div>
+                        <div className="bg-hud-panel px-4 py-2 text-center">
                             <div className="hud-label">Riesgo alto</div>
                             <div className="text-alarm-400 tnum text-lg">{counts.high}</div>
                         </div>
@@ -186,11 +214,22 @@ export const FleetMapPage: React.FC = () => {
                         <div ref={mapDivRef} className="w-full h-[60vh] min-h-[420px]" />
                     </div>
 
-                    {/* Driver list */}
+                    {/* Driver list / ranking */}
                     <div className="hud-panel flex flex-col max-h-[60vh] min-h-[420px]">
-                        <div className="hud-label p-3 border-b border-hud-line">Conductores activos</div>
+                        <div className="flex border-b border-hud-line">
+                            {(["activos", "ranking"] as const).map((t) => (
+                                <button
+                                    key={t}
+                                    onClick={() => setTab(t)}
+                                    className={`flex-1 px-3 py-2.5 font-mono uppercase tracking-widest text-xs transition-colors ${tab === t ? "bg-amber-400/10 text-amber-400 border-b-2 border-amber-400" : "text-hud-dim hover:text-hud-bone"}`}
+                                >
+                                    {t === "activos" ? "Activos" : "Ranking"}
+                                </button>
+                            ))}
+                        </div>
+
                         <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-hud-line">
-                            {drivers.map((d) => (
+                            {tab === "activos" && drivers.map((d) => (
                                 <button
                                     key={d.id}
                                     onClick={() => setSelectedId(d.id)}
@@ -202,6 +241,25 @@ export const FleetMapPage: React.FC = () => {
                                         <div className="hud-label mt-0.5 truncate">{d.alert ?? "En ruta"}</div>
                                     </div>
                                     <span className="font-mono text-xs text-hud-dim tnum">{d.speed.toFixed(0)} km/h</span>
+                                </button>
+                            ))}
+
+                            {tab === "ranking" && ranked.map((d, i) => (
+                                <button
+                                    key={d.id}
+                                    onClick={() => setSelectedId(d.id)}
+                                    className={`w-full text-left p-3 flex items-center gap-3 hover:bg-hud-bg transition-colors ${selectedId === d.id ? "bg-hud-bg" : ""}`}
+                                >
+                                    <span className={`font-mono font-bold tnum w-6 text-center ${i === 0 ? "text-amber-400" : i === 1 ? "text-hud-bone" : i === 2 ? "text-steel-300" : "text-hud-dim"}`}>
+                                        {i + 1}
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-mono text-sm truncate">{d.name}</div>
+                                        <div className="h-1 bg-hud-bg mt-1.5">
+                                            <div className={`h-1 ${d.score >= 80 ? "bg-phosphor-400" : d.score >= 50 ? "bg-amber-400" : "bg-alarm-400"}`} style={{ width: `${d.score}%` }} />
+                                        </div>
+                                    </div>
+                                    <span className={`font-mono text-sm font-bold tnum ${scoreText(d.score)}`}>{Math.round(d.score)}</span>
                                 </button>
                             ))}
                         </div>
@@ -229,6 +287,27 @@ export const FleetMapPage: React.FC = () => {
                                 </div>
                             </div>
 
+                            {/* Safety score + ranking */}
+                            <div className="grid grid-cols-2 gap-px bg-hud-line border border-hud-line mb-4">
+                                <div className="bg-hud-panel p-4">
+                                    <div className="hud-label mb-1">Safety score</div>
+                                    <div className={`font-mono text-3xl font-bold tnum ${scoreText(selected.score)}`}>{Math.round(selected.score)}</div>
+                                </div>
+                                <div className="bg-hud-panel p-4">
+                                    <div className="hud-label mb-1">Ranking flota</div>
+                                    <div className="font-mono text-3xl font-bold tnum text-amber-400">#{rankOf(selected.id) + 1}</div>
+                                </div>
+                            </div>
+
+                            {/* Badges */}
+                            {badges(selected, rankOf(selected.id)).length > 0 && (
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    {badges(selected, rankOf(selected.id)).map((b) => (
+                                        <span key={b} className="px-2 py-1 border border-amber-400/40 text-amber-400 font-mono text-[11px] uppercase tracking-wider">{b}</span>
+                                    ))}
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-2 gap-px bg-hud-line border border-hud-line mb-4">
                                 <div className="bg-hud-panel p-4">
                                     <div className="hud-label mb-1">Velocidad</div>
@@ -237,6 +316,17 @@ export const FleetMapPage: React.FC = () => {
                                 <div className="bg-hud-panel p-4">
                                     <div className="flex items-center gap-2 mb-1"><Gauge size={12} className="text-amber-400" /><span className="hud-label">Fatiga</span></div>
                                     <div className={`font-mono text-2xl font-bold tnum ${selected.fatigue >= 66 ? "text-alarm-400" : selected.fatigue >= 33 ? "text-amber-400" : "text-phosphor-400"}`}>{selected.fatigue.toFixed(0)}</div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-px bg-hud-line border border-hud-line mb-4">
+                                <div className="bg-hud-panel p-4">
+                                    <div className="hud-label mb-1">Racha sin incidentes</div>
+                                    <div className="font-mono text-xl font-bold tnum text-phosphor-400">{fmtStreak(selected.streak)}</div>
+                                </div>
+                                <div className="bg-hud-panel p-4">
+                                    <div className="hud-label mb-1">Incidentes</div>
+                                    <div className="font-mono text-xl font-bold tnum text-alarm-400">{selected.incidents}</div>
                                 </div>
                             </div>
 
