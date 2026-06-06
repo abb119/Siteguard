@@ -15,6 +15,7 @@ import { SecurityDashboard } from "./pages/SecurityDashboard";
 import { HoneytokensPage } from "./pages/HoneytokensPage";
 import { AttackGraphPage } from "./pages/AttackGraphPage";
 import { LlmGatewayPage } from "./pages/LlmGatewayPage";
+import { MetricsPage } from "./pages/MetricsPage";
 
 function App() {
   return (
@@ -47,6 +48,9 @@ function App() {
 
       {/* Admin */}
       <Route path="/admin" element={<AdminDashboard />} />
+
+      {/* Technical evaluation / metrics report */}
+      <Route path="/metrics" element={<MetricsPage />} />
     </Routes>
   );
 }

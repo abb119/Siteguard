@@ -27,6 +27,7 @@ export const LandingPage: React.FC = () => {
                     <nav className="hidden md:flex items-center gap-8 hud-label">
                         <a href="#services" className="hover:text-amber-400 transition-colors">Módulos</a>
                         <a href="#features" className="hover:text-amber-400 transition-colors">Capacidades</a>
+                        <Link to="/metrics" className="hover:text-amber-400 transition-colors">Métricas</Link>
                         <a href="#contact" className="hover:text-amber-400 transition-colors">Contacto</a>
                     </nav>
                     <div className="hidden md:flex items-center gap-2">
@@ -186,7 +187,7 @@ export const LandingPage: React.FC = () => {
                     <div className="flex items-center gap-6 hud-label">
                         <a href="#" className="hover:text-amber-400 transition-colors">Privacidad</a>
                         <a href="#" className="hover:text-amber-400 transition-colors">Términos</a>
-                        <a href="#" className="hover:text-amber-400 transition-colors">Docs</a>
+                        <Link to="/metrics" className="hover:text-amber-400 transition-colors">Métricas</Link>
                         <Link to="/admin" className="hover:text-amber-400 transition-colors">Admin</Link>
                     </div>
                     <span className="hud-label">© 2025 · Made in Spain</span>
