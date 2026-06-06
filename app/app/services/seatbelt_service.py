@@ -64,9 +64,11 @@ class SeatbeltDetector:
                 names = r.names
                 for box in r.boxes:
                     name = str(names[int(box.cls[0].item())]).lower().strip()
-                    if name in _ABSENT:
+                    # Robust matching across datasets (e.g. "Without_Seat_Belt",
+                    # "no_seatbelt", "Seat_Belt", "belt"). Check absence first.
+                    if "without" in name or name.startswith("no") or "unbuckl" in name or name in _ABSENT:
                         absent = True
-                    elif name in _WORN:
+                    elif "belt" in name or "buckl" in name or "seat" in name or name in _WORN:
                         worn = True
             if absent:
                 return False
