@@ -1,0 +1,30 @@
+# Dataset config for the DEPLOYED 11-class PPE model (siteguard_model/.../best.pt).
+# This matches the "Construction Site Safety" dataset (Roboflow Universe).
+#
+# Download (needs a free Roboflow account / API key):
+#   pip install roboflow
+#   ROBOFLOW_API_KEY=xxxx python -c "from roboflow import Roboflow; \
+#     Roboflow(api_key='xxxx').workspace('roboflow-universe-projects') \
+#     .project('construction-site-safety').version(30).download('yolov8', \
+#     location='datasets/construction-site-safety')"
+# Then run:  python ml/evaluate.py
+#
+# NOTE: the legacy ml/data.yaml (4 classes) does NOT match the deployed model.
+
+path: ../datasets/construction-site-safety
+train: train/images
+val: valid/images
+test: test/images
+
+names:
+  0: Hardhat
+  1: Mask
+  2: NO-Hardhat
+  3: NO-Mask
+  4: NO-Safety Vest
+  5: Person
+  6: Safety Cone
+  7: Safety Vest
+  8: machinery
+  9: utility pole
+  10: vehicle

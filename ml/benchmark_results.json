@@ -1,0 +1,91 @@
+{
+  "gpu": "NVIDIA GeForce RTX 2070",
+  "torch": "2.5.1+cu121",
+  "yolo": {
+    "PPE (best.pt)": {
+      "imgsz": 640,
+      "cpu": {
+        "mean_ms": 428.69,
+        "p95_ms": 435.87,
+        "fps": 2.3
+      },
+      "cuda:0": {
+        "mean_ms": 21.56,
+        "p95_ms": 25.57,
+        "fps": 46.4
+      }
+    },
+    "PPE fallback (6cls)": {
+      "imgsz": 640,
+      "cpu": {
+        "mean_ms": 85.36,
+        "p95_ms": 90.97,
+        "fps": 11.7
+      },
+      "cuda:0": {
+        "mean_ms": 13.22,
+        "p95_ms": 16.49,
+        "fps": 75.6
+      }
+    },
+    "Objects yolov8n (phone)": {
+      "imgsz": 320,
+      "cpu": {
+        "mean_ms": 46.32,
+        "p95_ms": 55.89,
+        "fps": 21.6
+      },
+      "cuda:0": {
+        "mean_ms": 12.91,
+        "p95_ms": 15.39,
+        "fps": 77.5
+      }
+    },
+    "Drowsiness (classify)": {
+      "imgsz": 640,
+      "cpu": {
+        "mean_ms": 787.85,
+        "p95_ms": 806.62,
+        "fps": 1.3
+      },
+      "cuda:0": {
+        "mean_ms": 50.17,
+        "p95_ms": 55.1,
+        "fps": 19.9
+      }
+    },
+    "Pose (ergonomics)": {
+      "imgsz": 640,
+      "cpu": {
+        "mean_ms": 97.92,
+        "p95_ms": 107.91,
+        "fps": 10.2
+      },
+      "cuda:0": {
+        "mean_ms": 18.17,
+        "p95_ms": 23.52,
+        "fps": 55.0
+      }
+    },
+    "Seatbelt": {
+      "imgsz": 320,
+      "cpu": {
+        "mean_ms": 41.02,
+        "p95_ms": 47.01,
+        "fps": 24.4
+      },
+      "cuda:0": {
+        "mean_ms": 12.19,
+        "p95_ms": 14.11,
+        "fps": 82.1
+      }
+    }
+  },
+  "mediapipe_facemesh": {
+    "cpu": {
+      "mean_ms": 5.71,
+      "p95_ms": 6.55,
+      "fps": 175.2
+    }
+  }
+}
