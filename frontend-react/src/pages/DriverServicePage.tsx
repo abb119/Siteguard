@@ -1,5 +1,5 @@
 import React from "react";
-import { Truck, Video, AlertTriangle, Settings, Car } from "lucide-react";
+import { Truck, Video, AlertTriangle, Settings, Car, Map as MapIcon } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
 import { DriverVideoFeed } from "../components/DriverVideoFeed";
 
@@ -12,6 +12,7 @@ export const DriverServicePage: React.FC = () => {
             navItems={[
                 { to: "/services/driver", label: "Monitor Conductor", icon: Video },
                 { to: "/services/driver/safe-driving", label: "Conducción Segura", icon: Car },
+                { to: "/services/driver/fleet", label: "Flota", icon: MapIcon },
                 { to: "/services/driver/alerts", label: "Alertas", icon: AlertTriangle },
                 { to: "/services/driver/settings", label: "Configuración", icon: Settings },
             ]}

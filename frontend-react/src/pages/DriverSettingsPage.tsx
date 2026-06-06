@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Truck, Video, Car, AlertTriangle, Settings, Save, RotateCcw, Check } from "lucide-react";
+import { Truck, Video, Car, AlertTriangle, Settings, Save, RotateCcw, Check, Map as MapIcon } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
 import {
     type DmsConfig, DEFAULT_DMS_CONFIG, loadDmsConfig, saveDmsConfig, resetDmsConfig,
@@ -8,6 +8,7 @@ import {
 const NAV = [
     { to: "/services/driver", label: "Monitor Conductor", icon: Video },
     { to: "/services/driver/safe-driving", label: "Conducción Segura", icon: Car },
+    { to: "/services/driver/fleet", label: "Flota", icon: MapIcon },
     { to: "/services/driver/alerts", label: "Alertas", icon: AlertTriangle },
     { to: "/services/driver/settings", label: "Configuración", icon: Settings },
 ];

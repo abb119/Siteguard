@@ -4,6 +4,7 @@ import { PPEServicePage } from "./pages/PPEServicePage";
 import { DriverServicePage } from "./pages/DriverServicePage";
 import { DriverAlertsPage } from "./pages/DriverAlertsPage";
 import { DriverSettingsPage } from "./pages/DriverSettingsPage";
+import { FleetMapPage } from "./pages/FleetMapPage";
 import { JobStatusPage } from "./pages/JobStatusPage";
 import { JobResultPage } from "./pages/JobResultPage";
 import { AdminDashboard } from "./pages/AdminDashboard";
@@ -35,6 +36,7 @@ function App() {
       <Route path="/services/driver/safe-driving" element={<SafeDrivingPage />} />
       <Route path="/services/driver/alerts" element={<DriverAlertsPage />} />
       <Route path="/services/driver/settings" element={<DriverSettingsPage />} />
+      <Route path="/services/driver/fleet" element={<FleetMapPage />} />
 
       {/* Security Module */}
       <Route path="/services/security" element={<SecurityDashboard />} />

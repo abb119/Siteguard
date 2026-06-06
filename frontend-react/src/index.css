@@ -93,6 +93,38 @@
   .tnum { font-variant-numeric: tabular-nums; }
 }
 
+/* Leaflet map — HUD theming */
+.leaflet-container {
+  background: #0a0a0b;
+  font-family: "IBM Plex Mono", monospace;
+}
+.leaflet-control-attribution {
+  background: rgba(10, 10, 11, 0.65) !important;
+  color: #605f58 !important;
+  font-size: 9px !important;
+}
+.leaflet-control-attribution a { color: #86847a !important; }
+.leaflet-bar, .leaflet-bar a {
+  background: #121214 !important;
+  color: #e8e6df !important;
+  border-color: #26262b !important;
+}
+.leaflet-bar a:hover { background: #1b1b1e !important; color: #ffb000 !important; }
+
+.fleet-marker {
+  width: 12px; height: 12px;
+  background: var(--c, #ffb000);
+  box-shadow: 0 0 0 2px #0a0a0b, 0 0 10px var(--c, #ffb000);
+  transform: rotate(45deg);
+  cursor: pointer;
+}
+.fleet-marker.sel { outline: 1px solid #e8e6df; outline-offset: 3px; }
+.fleet-marker.high { animation: fleetpulse 1s infinite; }
+@keyframes fleetpulse {
+  0%, 100% { box-shadow: 0 0 0 2px #0a0a0b, 0 0 6px var(--c); }
+  50% { box-shadow: 0 0 0 2px #0a0a0b, 0 0 16px var(--c); }
+}
+
 /* Selection + scrollbar in HUD colors */
 ::selection { background: #ffb000; color: #0a0a0b; }
 

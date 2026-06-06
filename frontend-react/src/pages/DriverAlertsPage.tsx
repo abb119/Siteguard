@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Truck, Video, Car, AlertTriangle, Settings, RefreshCw, ShieldAlert } from "lucide-react";
+import { Truck, Video, Car, AlertTriangle, Settings, RefreshCw, ShieldAlert, Map as MapIcon } from "lucide-react";
 import {
     Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
@@ -10,6 +10,7 @@ import { listDriverSessions, getDriverReport, listDriverEvents, staticUrl } from
 const NAV = [
     { to: "/services/driver", label: "Monitor Conductor", icon: Video },
     { to: "/services/driver/safe-driving", label: "Conducción Segura", icon: Car },
+    { to: "/services/driver/fleet", label: "Flota", icon: MapIcon },
     { to: "/services/driver/alerts", label: "Alertas", icon: AlertTriangle },
     { to: "/services/driver/settings", label: "Configuración", icon: Settings },
 ];
