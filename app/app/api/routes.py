@@ -485,22 +485,32 @@ async def websocket_driver_stream_v2(websocket: WebSocket, db: AsyncSession = De
     frame_counter = 0
     last_objects: list = []
 
-    # Reuse the already-loaded object model for phone detection (optional)
-    try:
-        from app.app.services.driver_model_service import get_driver_model
-        phone_model = get_driver_model().object_model
-    except Exception as exc:  # pragma: no cover - optional
-        print(f"DMS v2: phone model unavailable ({exc})", flush=True)
-        phone_model = None
-
-    # Optional dedicated seatbelt model (disabled if no weights file present)
+    # Custom-trained cabin model (dms_cabin.pt) takes priority: one inference
+    # covers phone/drinking objects AND seatbelt state.
     last_seatbelt = None
     try:
-        from app.app.services.seatbelt_service import get_seatbelt_detector
-        seatbelt_detector = get_seatbelt_detector()
+        from app.app.services.cabin_detector_service import get_cabin_detector
+        cabin_detector = get_cabin_detector()
+        if not cabin_detector.available:
+            cabin_detector = None
     except Exception as exc:  # pragma: no cover - optional
-        print(f"DMS v2: seatbelt detector unavailable ({exc})", flush=True)
-        seatbelt_detector = None
+        print(f"DMS v2: cabin detector unavailable ({exc})", flush=True)
+        cabin_detector = None
+
+    # Fallbacks (only loaded when there is no custom model)
+    phone_model = None
+    seatbelt_detector = None
+    if cabin_detector is None:
+        try:
+            from app.app.services.driver_model_service import get_driver_model
+            phone_model = get_driver_model().object_model
+        except Exception as exc:  # pragma: no cover - optional
+            print(f"DMS v2: phone model unavailable ({exc})", flush=True)
+        try:
+            from app.app.services.seatbelt_service import get_seatbelt_detector
+            seatbelt_detector = get_seatbelt_detector()
+        except Exception as exc:  # pragma: no cover - optional
+            print(f"DMS v2: seatbelt detector unavailable ({exc})", flush=True)
 
     try:
         while True:
@@ -536,13 +546,20 @@ async def websocket_driver_stream_v2(websocket: WebSocket, db: AsyncSession = De
 
             t = time.perf_counter()
 
-            # Object detection (phone/cup/bottle) every 3rd frame to keep latency low
-            if phone_model is not None and frame_counter % 3 == 0:
-                last_objects = await loop.run_in_executor(None, _detect_distraction_objects, phone_model, frame)
+            if cabin_detector is not None:
+                # Custom model: objects + seatbelt in one pass, every 3rd frame
+                if frame_counter % 3 == 0:
+                    last_objects, last_seatbelt = await loop.run_in_executor(
+                        None, cabin_detector.detect, frame
+                    )
+            else:
+                # Object detection (phone/cup/bottle) every 3rd frame to keep latency low
+                if phone_model is not None and frame_counter % 3 == 0:
+                    last_objects = await loop.run_in_executor(None, _detect_distraction_objects, phone_model, frame)
 
-            # Seatbelt detection every 5th frame (separate, optional model)
-            if seatbelt_detector is not None and frame_counter % 5 == 0:
-                last_seatbelt = await loop.run_in_executor(None, seatbelt_detector.detect, frame)
+                # Seatbelt detection every 5th frame (separate, optional model)
+                if seatbelt_detector is not None and frame_counter % 5 == 0:
+                    last_seatbelt = await loop.run_in_executor(None, seatbelt_detector.detect, frame)
 
             start = time.time()
             result = await loop.run_in_executor(None, session.process, frame, t, last_objects, last_seatbelt)
