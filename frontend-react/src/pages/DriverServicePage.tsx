@@ -3,11 +3,14 @@ import { useSearchParams } from "react-router-dom";
 import { Truck, Video, AlertTriangle, Settings, Car, Map as MapIcon, User } from "lucide-react";
 import { ServiceLayout } from "../components/ServiceLayout";
 import { DriverVideoFeed } from "../components/DriverVideoFeed";
+import { useAuth } from "../auth/AuthContext";
 
 export const DriverServicePage: React.FC = () => {
     const [params] = useSearchParams();
-    const driver = params.get("driver");
-    const name = params.get("name");
+    const { user } = useAuth();
+    // Explicit ?driver= wins; otherwise a logged-in worker records under their own identity
+    const driver = params.get("driver") || (user?.role === "worker" ? user.username : null);
+    const name = params.get("name") || (user?.role === "worker" ? (user.full_name || user.username) : null);
     return (
         <ServiceLayout
             serviceName="Sistema ADAS"

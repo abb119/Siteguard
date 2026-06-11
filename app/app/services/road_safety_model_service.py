@@ -99,6 +99,42 @@ class RoadSafetyModel:
         except Exception:
             return "detected"
 
+    def _lane_departure(self, img_rgb) -> Dict[str, Any]:
+        """Estimate lane departure from road line slopes (Hough) in the lower ROI."""
+        try:
+            h, w = img_rgb.shape[:2]
+            roi = img_rgb[int(h * 0.60):, :]
+            gray = cv2.cvtColor(roi, cv2.COLOR_RGB2GRAY)
+            edges = cv2.Canny(gray, 60, 150)
+            lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=50,
+                                    minLineLength=int(w * 0.15), maxLineGap=50)
+            if lines is None:
+                return {"departure": False, "side": None}
+            left_x, right_x = [], []
+            for ln in lines:
+                x1, y1, x2, y2 = ln[0]
+                if x2 == x1:
+                    continue
+                slope = (y2 - y1) / (x2 - x1)
+                if abs(slope) < 0.4:
+                    continue
+                xb = x1 if y1 > y2 else x2  # x at the bottom of the segment
+                if slope < 0 and xb < w * 0.55:
+                    left_x.append(xb)
+                elif slope > 0 and xb > w * 0.45:
+                    right_x.append(xb)
+            if not left_x or not right_x:
+                return {"departure": False, "side": None}
+            lane_center = (float(np.mean(left_x)) + float(np.mean(right_x))) / 2.0
+            offset = (lane_center - w / 2.0) / w
+            if offset > 0.12:
+                return {"departure": True, "side": "left"}
+            if offset < -0.12:
+                return {"departure": True, "side": "right"}
+            return {"departure": False, "side": None}
+        except Exception:
+            return {"departure": False, "side": None}
+
     def analyze_front_camera(self, image_bytes: bytes, frame_width: int = 640) -> Dict[str, Any]:
         """Analyze front camera: pedestrians, lead-vehicle FCW (TTC), traffic-light state."""
         image = Image.open(io.BytesIO(image_bytes))
@@ -114,10 +150,21 @@ class RoadSafetyModel:
             "vehicles_ahead": [],
             "lead_vehicle": None,
             "ttc": None,
+            "lane": None,
         }
 
         if not self.model:
             return results
+
+        lane = self._lane_departure(img_rgb)
+        results["lane"] = lane
+        if lane["departure"]:
+            results["alerts"].append({
+                "type": "LANE_DEPARTURE", "level": "warning",
+                "message": f"Salida de carril ({'izq' if lane['side'] == 'left' else 'der'})",
+            })
+            if results["risk_level"] == "low":
+                results["risk_level"] = "medium"
 
         try:
             yolo_results = self.model(image, device=self.device, verbose=False, conf=0.4)

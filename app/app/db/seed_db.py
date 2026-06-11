@@ -19,17 +19,23 @@ async def seed_users():
         
         if not user:
             print("Creating admin user...")
-            hashed_password = get_password_hash("admin123")
+            hashed_password = get_password_hash(os.getenv("ADMIN_PASSWORD", "admin123"))
             new_user = User(
                 username="admin",
                 email="admin@siteguard.com",
                 hashed_password=hashed_password,
                 is_active=True,
-                disabled=False
+                disabled=False,
+                role="admin",
             )
             session.add(new_user)
             await session.commit()
             print("Admin user created successfully.")
+        elif user.role != "admin":
+            # Admin created before roles existed — promote it
+            user.role = "admin"
+            await session.commit()
+            print("Admin user promoted to role=admin.")
         else:
             print("Admin user already exists.")
 

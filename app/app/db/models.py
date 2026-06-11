@@ -22,17 +22,38 @@ class Incident(Base):
     severity = Column(String) # "HIGH", "MEDIUM", "LOW"
     details = Column(JSON) # Specifics about the violation
 
+class Company(Base):
+    __tablename__ = "companies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    users = relationship("User", back_populates="company")
+
+
+class UserRole(str, enum.Enum):
+    ADMIN = "admin"      # platform admin: manages companies
+    COMPANY = "company"  # company manager: manages its workers
+    WORKER = "worker"    # driver/operator: monitored identity
+
+
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True, nullable=True)
+    full_name = Column(String, nullable=True)
     hashed_password = Column(String)
     is_active = Column(Integer, default=True) # Using Integer as Boolean for broader compatibility if needed, or just Boolean
     # Note: SQLite/Postgres handle Boolean differently, but SQLAlchemy abstracts it. Let's use Boolean if possible, or Integer 0/1.
     # For simplicity with the existing jwt.py which expects 'disabled' (bool), let's use Boolean.
     disabled = Column(Boolean, default=False)
+    role = Column(String, default=UserRole.WORKER.value, nullable=False)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+
+    company = relationship("Company", back_populates="users")
 
 
 class JobType(str, enum.Enum):

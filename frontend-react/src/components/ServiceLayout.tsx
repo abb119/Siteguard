@@ -8,7 +8,10 @@ import {
     History,
     Menu,
     X,
+    LogIn,
+    LogOut,
 } from "lucide-react";
+import { useAuth } from "../auth/AuthContext";
 
 type NavItem = {
     to: string;
@@ -31,6 +34,7 @@ export const ServiceLayout: React.FC<ServiceLayoutProps> = ({
     navItems,
 }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { user, logout } = useAuth();
 
     return (
         <div className="flex min-h-screen bg-grid text-hud-bone font-sans">
@@ -112,7 +116,25 @@ export const ServiceLayout: React.FC<ServiceLayoutProps> = ({
                 </nav>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-hud-line">
+                <div className="p-4 border-t border-hud-line space-y-3">
+                    {user ? (
+                        <div className="flex items-center justify-between">
+                            <Link
+                                to={user.role === "admin" ? "/admin" : user.role === "company" ? "/company" : "/services/driver/alerts"}
+                                className="font-mono text-xs text-amber-400 uppercase tracking-wider truncate hover:underline"
+                                title={user.role}
+                            >
+                                @{user.username}
+                            </Link>
+                            <button onClick={logout} title="Cerrar sesión" className="p-1.5 border border-hud-line text-hud-dim hover:border-alarm-400 hover:text-alarm-400 transition-colors">
+                                <LogOut size={12} />
+                            </button>
+                        </div>
+                    ) : (
+                        <Link to="/login" className="flex items-center gap-2 hud-label hover:text-amber-400 transition-colors">
+                            <LogIn size={12} /> Iniciar sesión
+                        </Link>
+                    )}
                     <div className="flex items-center gap-2 mb-2">
                         <span className="hud-dot bg-phosphor-400 text-phosphor-400 rounded-full inline-block animate-pulse" />
                         <span className="hud-label text-phosphor-400">Online · GPU</span>

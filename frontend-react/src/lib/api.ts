@@ -67,9 +67,19 @@ export function buildArtifactUrl(path: string): string {
  * Wrapper around fetch that adds ngrok-skip-browser-warning header.
  * Prevents ngrok free-tier HTML interstitial from breaking API calls.
  */
+export const TOKEN_KEY = "siteguard_token";
+
+export function getToken(): string | null {
+    return localStorage.getItem(TOKEN_KEY);
+}
+
 export function apiFetch(url: string, init?: RequestInit): Promise<Response> {
     const headers = new Headers(init?.headers);
     headers.set("ngrok-skip-browser-warning", "true");
+    const token = getToken();
+    if (token && !headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${token}`);
+    }
     return fetch(url, { ...init, headers });
 }
 
@@ -111,5 +121,74 @@ export async function reviewDriverEvent(id: number, isFalsePositive: boolean): P
         body: JSON.stringify({ is_false_positive: isFalsePositive }),
     });
     if (!res.ok) throw new Error("Failed to review event");
+    return res.json();
+}
+
+// ── Auth / multi-tenant ──────────────────────────────────────────────────────
+export type Me = {
+    id: number;
+    username: string;
+    full_name: string | null;
+    role: "admin" | "company" | "worker";
+    company_id: number | null;
+    company_name: string | null;
+};
+
+export async function authLogin(username: string, password: string): Promise<string> {
+    const body = new URLSearchParams({ username, password });
+    const res = await apiFetch(`${API_HOST}/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body,
+    });
+    if (!res.ok) throw new Error("Credenciales incorrectas");
+    const data = await res.json();
+    localStorage.setItem(TOKEN_KEY, data.access_token);
+    return data.access_token;
+}
+
+export function authLogout(): void {
+    localStorage.removeItem(TOKEN_KEY);
+}
+
+export async function authMe(): Promise<Me> {
+    const res = await apiFetch(`${API_HOST}/users/me`);
+    if (!res.ok) throw new Error("No autenticado");
+    return res.json();
+}
+
+export async function adminListCompanies(): Promise<any[]> {
+    const res = await apiFetch(`${API_HOST}/admin/companies`);
+    if (!res.ok) throw new Error("Failed to list companies");
+    return res.json();
+}
+
+export async function adminCreateCompany(payload: {
+    name: string; manager_username: string; manager_password: string; manager_full_name?: string;
+}): Promise<any> {
+    const res = await apiFetch(`${API_HOST}/admin/companies`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.detail || "Error creando empresa");
+    return res.json();
+}
+
+export async function companyListWorkers(): Promise<any[]> {
+    const res = await apiFetch(`${API_HOST}/company/workers`);
+    if (!res.ok) throw new Error("Failed to list workers");
+    return res.json();
+}
+
+export async function companyCreateWorker(payload: {
+    username: string; password: string; full_name?: string;
+}): Promise<any> {
+    const res = await apiFetch(`${API_HOST}/company/workers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.detail || "Error creando trabajador");
     return res.json();
 }

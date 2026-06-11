@@ -115,3 +115,19 @@ async def get_current_active_user(current_user: UserModel = Depends(get_current_
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+def require_roles(*roles: str):
+    """
+    Dependency factory: endpoint only accessible to users whose role is in
+    `roles`. Usage: Depends(require_roles("admin")) or ("admin", "company").
+    """
+    async def _checker(current_user: UserModel = Depends(get_current_active_user)) -> UserModel:
+        if current_user.role not in roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Requires role: {', '.join(roles)}",
+            )
+        return current_user
+
+    return _checker

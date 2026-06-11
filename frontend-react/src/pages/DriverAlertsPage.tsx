@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Truck, Video, Car, AlertTriangle, Settings, RefreshCw, ShieldAlert, Map as MapIcon } from "lucide-react";
+import { useAuth } from "../auth/AuthContext";
 import {
     Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
@@ -46,8 +48,13 @@ type Report = {
 };
 
 export const DriverAlertsPage: React.FC = () => {
+    const [params] = useSearchParams();
+    const { user } = useAuth();
+    const isWorker = user?.role === "worker";
     const [sessions, setSessions] = useState<any[]>([]);
-    const [selected, setSelected] = useState<string>(getSessionId());
+    const [selected, setSelected] = useState<string>(
+        params.get("session") || (isWorker ? user!.username : getSessionId())
+    );
     const [report, setReport] = useState<Report | null>(null);
     const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -93,20 +100,26 @@ export const DriverAlertsPage: React.FC = () => {
                         <h1 className="font-mono text-2xl md:text-3xl font-bold tracking-tight mt-2">ALERTAS</h1>
                     </div>
                     <div className="flex items-center gap-2">
-                        <select
-                            value={selected}
-                            onChange={(e) => setSelected(e.target.value)}
-                            className="bg-hud-panel border border-hud-line text-hud-bone font-mono text-xs px-3 py-2 focus:outline-none focus:border-amber-400"
-                        >
-                            <option value={getSessionId()}>Sesión actual</option>
-                            {sessions
-                                .filter((s) => s.session_id && s.session_id !== getSessionId())
-                                .map((s) => (
-                                    <option key={s.session_id} value={s.session_id}>
-                                        {(s.session_id as string).slice(0, 8)} · {s.events} ev
-                                    </option>
-                                ))}
-                        </select>
+                        {isWorker ? (
+                            <span className="px-3 py-2 border border-amber-400/40 text-amber-400 font-mono text-xs uppercase tracking-wider">
+                                @{user!.username}
+                            </span>
+                        ) : (
+                            <select
+                                value={selected}
+                                onChange={(e) => setSelected(e.target.value)}
+                                className="bg-hud-panel border border-hud-line text-hud-bone font-mono text-xs px-3 py-2 focus:outline-none focus:border-amber-400"
+                            >
+                                <option value={selected}>{selected.length > 12 ? `${selected.slice(0, 8)}…` : selected}</option>
+                                {sessions
+                                    .filter((s) => s.session_id && s.session_id !== selected)
+                                    .map((s) => (
+                                        <option key={s.session_id} value={s.session_id}>
+                                            {(s.session_id as string).slice(0, 12)} · {s.events} ev
+                                        </option>
+                                    ))}
+                            </select>
+                        )}
                         <button
                             onClick={() => { loadSessions(); loadReport(selected); }}
                             className="p-2 border border-hud-line hover:border-amber-400 hover:text-amber-400 transition-colors"

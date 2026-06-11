@@ -27,6 +27,7 @@ from app.app.auth.jwt import (
     authenticate_user,
     create_access_token,
     get_current_active_user,
+    require_roles,
 )
 from app.app.db.database import get_db
 from app.app.db.models import Detection, DriverEvent, Incident, Violation
@@ -51,7 +52,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": user.username, "role": user.role, "company_id": user.company_id},
+        expires_delta=access_token_expires,
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -580,10 +582,11 @@ async def websocket_driver_stream_v2(websocket: WebSocket, db: AsyncSession = De
 
 @router.get("/violations", response_model=List[ViolationOut])
 async def get_violations(
-    skip: int = 0, 
-    limit: int = 50, 
+    skip: int = 0,
+    limit: int = 50,
     session_id: Optional[str] = None,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: Any = Depends(require_roles("admin", "company")),
 ):
     query = select(Violation)
     if session_id:
@@ -595,9 +598,10 @@ async def get_violations(
 
 @router.post("/violations/{violation_id}/review", response_model=ViolationOut)
 async def review_violation(
-    violation_id: int, 
-    review: ViolationReview, 
-    db: AsyncSession = Depends(get_db)
+    violation_id: int,
+    review: ViolationReview,
+    db: AsyncSession = Depends(get_db),
+    current_user: Any = Depends(require_roles("admin", "company")),
 ):
     query = select(Violation).where(Violation.id == violation_id)
     result = await db.execute(query)
@@ -620,8 +624,44 @@ async def review_violation(
 # ============================================
 _SAFETY_WEIGHTS = {
     "MICROSLEEP": 18, "DROWSY": 10, "PHONE": 8, "DISTRACTION": 6,
-    "LOOK_DOWN": 6, "DRINKING": 4, "NO_FACE": 3, "YAWN": 2,
+    "LOOK_DOWN": 6, "DRINKING": 4, "NO_FACE": 3, "YAWN": 2, "NO_SEATBELT": 8,
 }
+
+
+async def _assert_session_access(user, session_id: Optional[str], db: AsyncSession) -> None:
+    """
+    Multi-tenant scoping for driver data keyed by session_id:
+      - admin: everything
+      - worker: only their own username
+      - company: their workers' sessions + unclaimed/demo sessions; never
+        sessions belonging to another company's worker
+    """
+    if user.role == "admin" or session_id is None:
+        if user.role == "worker" and session_id is None:
+            raise HTTPException(status_code=403, detail="Workers must query their own session")
+        return
+    if user.role == "worker":
+        if session_id != user.username:
+            raise HTTPException(status_code=403, detail="Not your session")
+        return
+    # company: deny only if the session belongs to a different company's user
+    from app.app.db.models import User as UserModel
+    owner = (await db.execute(
+        select(UserModel).where(UserModel.username == session_id)
+    )).scalars().first()
+    if owner and owner.company_id != user.company_id:
+        raise HTTPException(status_code=403, detail="Session belongs to another company")
+
+
+async def _foreign_worker_usernames(user, db: AsyncSession) -> set:
+    """Usernames of workers from OTHER companies (to exclude for company role)."""
+    from app.app.db.models import User as UserModel
+    rows = (await db.execute(
+        select(UserModel.username).where(
+            UserModel.role == "worker", UserModel.company_id != user.company_id
+        )
+    )).scalars().all()
+    return set(rows)
 
 
 @router.get("/driver/events", response_model=List[DriverEventOut])
@@ -631,10 +671,20 @@ async def list_driver_events(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_db),
+    current_user: Any = Depends(get_current_active_user),
 ):
+    if current_user.role == "worker":
+        session_id = current_user.username  # workers only see their own events
+    elif session_id:
+        await _assert_session_access(current_user, session_id, db)
+
     query = select(DriverEvent)
     if session_id:
         query = query.where(DriverEvent.session_id == session_id)
+    elif current_user.role == "company":
+        foreign = await _foreign_worker_usernames(current_user, db)
+        if foreign:
+            query = query.where(DriverEvent.session_id.notin_(foreign))
     if event_type:
         query = query.where(DriverEvent.event_type == event_type)
     query = query.order_by(desc(DriverEvent.timestamp)).offset(skip).limit(limit)
@@ -643,7 +693,10 @@ async def list_driver_events(
 
 
 @router.get("/driver/sessions")
-async def list_driver_sessions(db: AsyncSession = Depends(get_db)):
+async def list_driver_sessions(
+    db: AsyncSession = Depends(get_db),
+    current_user: Any = Depends(require_roles("admin", "company")),
+):
     """Distinct monitoring sessions with a quick summary, newest first."""
     from sqlalchemy import func as safunc
 
@@ -657,6 +710,10 @@ async def list_driver_sessions(db: AsyncSession = Depends(get_db)):
         .group_by(DriverEvent.session_id)
         .order_by(desc(safunc.max(DriverEvent.timestamp)))
     )
+    if current_user.role == "company":
+        foreign = await _foreign_worker_usernames(current_user, db)
+        if foreign:
+            query = query.where(DriverEvent.session_id.notin_(foreign))
     result = await db.execute(query)
     return [
         {"session_id": r.session_id, "events": r.events, "first": r.first, "last": r.last}
@@ -665,7 +722,12 @@ async def list_driver_sessions(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/driver/sessions/{session_id}/report")
-async def driver_session_report(session_id: str, db: AsyncSession = Depends(get_db)):
+async def driver_session_report(
+    session_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Any = Depends(get_current_active_user),
+):
+    await _assert_session_access(current_user, session_id, db)
     query = (
         select(DriverEvent)
         .where(DriverEvent.session_id == session_id)
@@ -706,12 +768,16 @@ async def driver_session_report(session_id: str, db: AsyncSession = Depends(get_
 
 @router.post("/driver/events/{event_id}/review", response_model=DriverEventOut)
 async def review_driver_event(
-    event_id: int, review: DriverEventReview, db: AsyncSession = Depends(get_db)
+    event_id: int,
+    review: DriverEventReview,
+    db: AsyncSession = Depends(get_db),
+    current_user: Any = Depends(require_roles("admin", "company")),
 ):
     result = await db.execute(select(DriverEvent).where(DriverEvent.id == event_id))
     event = result.scalar_one_or_none()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+    await _assert_session_access(current_user, event.session_id, db)
     event.is_reviewed = True
     event.is_false_positive = review.is_false_positive
     await db.commit()

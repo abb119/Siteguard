@@ -17,26 +17,37 @@ import { HoneytokensPage } from "./pages/HoneytokensPage";
 import { AttackGraphPage } from "./pages/AttackGraphPage";
 import { LlmGatewayPage } from "./pages/LlmGatewayPage";
 import { MetricsPage } from "./pages/MetricsPage";
+import { LoginPage } from "./pages/LoginPage";
+import { AdminPanelPage } from "./pages/AdminPanelPage";
+import { CompanyPanelPage } from "./pages/CompanyPanelPage";
+import { RequireAuth } from "./auth/AuthContext";
 
 function App() {
   return (
     <Routes>
       {/* Landing Page - No Layout wrapper */}
       <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<LoginPage />} />
 
-      {/* PPE Service Pages */}
+      {/* PPE Service Pages (live demos public; history protected) */}
       <Route path="/services/ppe" element={<PPEServicePage />} />
       <Route path="/services/ppe/upload" element={<PPEUploadPage />} />
       <Route path="/services/ppe/ergonomics" element={<ErgonomicsPage />} />
       <Route path="/services/ppe/vehicle-control" element={<VehicleControlPage />} />
-      <Route path="/services/ppe/history" element={<AdminDashboard />} />
+      <Route path="/services/ppe/history" element={
+        <RequireAuth roles={["admin", "company"]}><AdminDashboard /></RequireAuth>
+      } />
 
-      {/* Driver Service Pages */}
+      {/* Driver Service Pages (live demos public; data views protected) */}
       <Route path="/services/driver" element={<DriverServicePage />} />
       <Route path="/services/driver/safe-driving" element={<SafeDrivingPage />} />
-      <Route path="/services/driver/alerts" element={<DriverAlertsPage />} />
+      <Route path="/services/driver/alerts" element={
+        <RequireAuth><DriverAlertsPage /></RequireAuth>
+      } />
       <Route path="/services/driver/settings" element={<DriverSettingsPage />} />
-      <Route path="/services/driver/fleet" element={<FleetMapPage />} />
+      <Route path="/services/driver/fleet" element={
+        <RequireAuth roles={["admin", "company"]}><FleetMapPage /></RequireAuth>
+      } />
 
       {/* Security Module */}
       <Route path="/services/security" element={<SecurityDashboard />} />
@@ -48,8 +59,13 @@ function App() {
       <Route path="/jobs/:jobId" element={<JobStatusPage />} />
       <Route path="/jobs/:jobId/result" element={<JobResultPage />} />
 
-      {/* Admin */}
-      <Route path="/admin" element={<AdminDashboard />} />
+      {/* Role panels */}
+      <Route path="/admin" element={
+        <RequireAuth roles={["admin"]}><AdminPanelPage /></RequireAuth>
+      } />
+      <Route path="/company" element={
+        <RequireAuth roles={["company", "admin"]}><CompanyPanelPage /></RequireAuth>
+      } />
 
       {/* Technical evaluation / metrics report */}
       <Route path="/metrics" element={<MetricsPage />} />
@@ -58,4 +74,3 @@ function App() {
 }
 
 export default App;
-

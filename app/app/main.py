@@ -9,9 +9,10 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.app.api import jobs_routes, routes
+from app.app.api import jobs_routes, routes, users_routes
 from app.app.db import models  # noqa: F401
 from app.app.db.database import Base, engine
+from app.app.db.migrate_lite import ensure_auth_schema
 from app.app.db.seed_db import seed_users
 from app.app.jobs.cleanup import cleanup_loop
 from app.app.jobs.worker import job_worker_loop
@@ -59,6 +60,7 @@ async def lifespan(app: FastAPI):
                 print("CRITICAL: Could not connect to DB after multiple retries.", flush=True)
                 raise e
     
+    await ensure_auth_schema(engine)
     await seed_users()
 
     worker_task = (
@@ -97,6 +99,7 @@ Instrumentator().instrument(app).expose(app)
 # Include API routers
 app.include_router(routes.router)
 app.include_router(jobs_routes.router)
+app.include_router(users_routes.router)
 
 # Security module
 mount_sub_routers()

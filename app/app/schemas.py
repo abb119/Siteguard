@@ -41,3 +41,49 @@ class DriverEventOut(BaseModel):
 
 class DriverEventReview(BaseModel):
     is_false_positive: bool
+
+
+# ── Auth / multi-tenant ──────────────────────────────────────────────
+class UserOut(BaseModel):
+    id: int
+    username: str
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    role: str
+    company_id: Optional[int] = None
+    disabled: Optional[bool] = False
+
+    class Config:
+        from_attributes = True
+
+
+class MeOut(UserOut):
+    company_name: Optional[str] = None
+
+
+class CompanyCreate(BaseModel):
+    name: str
+    manager_username: str
+    manager_password: str
+    manager_full_name: Optional[str] = None
+
+
+class CompanyOut(BaseModel):
+    id: int
+    name: str
+    workers: int = 0
+    manager: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class WorkerCreate(BaseModel):
+    username: str
+    password: str
+    full_name: Optional[str] = None
+
+
+class WorkerOut(UserOut):
+    events: int = 0
+    safety_score: int = 100

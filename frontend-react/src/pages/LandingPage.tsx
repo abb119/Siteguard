@@ -11,8 +11,10 @@ import {
     Activity,
 } from "lucide-react";
 import DotGrid from "../components/DotGrid";
+import { useAuth } from "../auth/AuthContext";
 
 export const LandingPage: React.FC = () => {
+    const { user } = useAuth();
     return (
         <div className="min-h-screen bg-grid text-hud-bone overflow-x-hidden font-sans">
             {/* Header */}
@@ -30,9 +32,26 @@ export const LandingPage: React.FC = () => {
                         <Link to="/metrics" className="hover:text-amber-400 transition-colors">Métricas</Link>
                         <a href="#contact" className="hover:text-amber-400 transition-colors">Contacto</a>
                     </nav>
-                    <div className="hidden md:flex items-center gap-2">
-                        <span className="hud-dot bg-phosphor-400 text-phosphor-400 rounded-full inline-block animate-pulse" />
-                        <span className="hud-label text-phosphor-400">Operativo</span>
+                    <div className="hidden md:flex items-center gap-4">
+                        <span className="flex items-center gap-2">
+                            <span className="hud-dot bg-phosphor-400 text-phosphor-400 rounded-full inline-block animate-pulse" />
+                            <span className="hud-label text-phosphor-400">Operativo</span>
+                        </span>
+                        {user ? (
+                            <Link
+                                to={user.role === "admin" ? "/admin" : user.role === "company" ? "/company" : "/services/driver"}
+                                className="px-3 py-1.5 border border-amber-400/50 text-amber-400 hover:bg-amber-400 hover:text-hud-bg transition-colors font-mono uppercase tracking-widest text-xs"
+                            >
+                                {user.username}
+                            </Link>
+                        ) : (
+                            <Link
+                                to="/login"
+                                className="px-3 py-1.5 border border-hud-line text-hud-bone hover:border-amber-400 hover:text-amber-400 transition-colors font-mono uppercase tracking-widest text-xs"
+                            >
+                                Acceder
+                            </Link>
+                        )}
                     </div>
                 </div>
             </header>
