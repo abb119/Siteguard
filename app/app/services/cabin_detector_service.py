@@ -47,6 +47,14 @@ class CabinDetector:
     def available(self) -> bool:
         return self.model is not None
 
+    @property
+    def has_seatbelt(self) -> bool:
+        """True if the custom model was trained with seatbelt_on/off classes."""
+        if self.model is None:
+            return False
+        names = {str(n).lower() for n in self.model.names.values()}
+        return "seatbelt_on" in names or "seatbelt_off" in names
+
     def detect(self, frame_bgr, conf: float = 0.4) -> Tuple[List[Dict], Optional[bool]]:
         """Returns (objects for DmsSession, seatbelt True/False/None)."""
         objects: List[Dict] = []

@@ -497,7 +497,8 @@ async def websocket_driver_stream_v2(websocket: WebSocket, db: AsyncSession = De
         print(f"DMS v2: cabin detector unavailable ({exc})", flush=True)
         cabin_detector = None
 
-    # Fallbacks (only loaded when there is no custom model)
+    # Fallbacks: objects only when there is no custom model; seatbelt.pt also
+    # kept when the custom model wasn't trained with seatbelt classes (hybrid).
     phone_model = None
     seatbelt_detector = None
     if cabin_detector is None:
@@ -506,6 +507,7 @@ async def websocket_driver_stream_v2(websocket: WebSocket, db: AsyncSession = De
             phone_model = get_driver_model().object_model
         except Exception as exc:  # pragma: no cover - optional
             print(f"DMS v2: phone model unavailable ({exc})", flush=True)
+    if cabin_detector is None or not cabin_detector.has_seatbelt:
         try:
             from app.app.services.seatbelt_service import get_seatbelt_detector
             seatbelt_detector = get_seatbelt_detector()
@@ -547,19 +549,21 @@ async def websocket_driver_stream_v2(websocket: WebSocket, db: AsyncSession = De
             t = time.perf_counter()
 
             if cabin_detector is not None:
-                # Custom model: objects + seatbelt in one pass, every 3rd frame
+                # Custom model: objects (+ seatbelt if trained) every 3rd frame
                 if frame_counter % 3 == 0:
-                    last_objects, last_seatbelt = await loop.run_in_executor(
+                    last_objects, cabin_belt = await loop.run_in_executor(
                         None, cabin_detector.detect, frame
                     )
+                    if cabin_detector.has_seatbelt:
+                        last_seatbelt = cabin_belt
             else:
                 # Object detection (phone/cup/bottle) every 3rd frame to keep latency low
                 if phone_model is not None and frame_counter % 3 == 0:
                     last_objects = await loop.run_in_executor(None, _detect_distraction_objects, phone_model, frame)
 
-                # Seatbelt detection every 5th frame (separate, optional model)
-                if seatbelt_detector is not None and frame_counter % 5 == 0:
-                    last_seatbelt = await loop.run_in_executor(None, seatbelt_detector.detect, frame)
+            # Dedicated seatbelt model (fallback or hybrid) every 5th frame
+            if seatbelt_detector is not None and frame_counter % 5 == 0:
+                last_seatbelt = await loop.run_in_executor(None, seatbelt_detector.detect, frame)
 
             start = time.time()
             result = await loop.run_in_executor(None, session.process, frame, t, last_objects, last_seatbelt)
