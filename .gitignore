@@ -102,3 +102,4 @@ datasets/
 runs/
 # but DO keep the committed evaluation figures for the report
 !docs/eval/confusion_matrix.png
+!docs/eval/dms_confusion_matrix.png

@@ -109,6 +109,44 @@ Gráficas generadas (`docs/eval/`):
 
 ---
 
+## 3.bis Modelo propio de cabina (dataset propio + comparación vs baseline)
+
+Para sustituir el detector genérico COCO del monitor de conductor (móvil/bebida)
+se construyó un **dataset propio de cabina** combinando:
+- **State Farm Distracted Driver** (mirror público): ~5.000 imágenes **reales**
+  de `phone` + 886 de `drinking` + 1.200 negativos, auto-etiquetadas con cajas
+  COCO (yolov8m, baja confianza, resolución completa).
+- **Synthetic Driver Monitoring** (HuggingFace): 1.603 imágenes sintéticas con
+  cajas de origen, remapeadas a `phone`/`drinking`.
+
+**Total: 8.689 imágenes** (train 6.267 / val 1.608 / **test 814**), 2 clases.
+Entrenamiento: transfer learning desde `yolov8n`, 80 épocas, RTX 2070.
+
+### Resultados sobre el test split (814 imágenes reales+sintéticas)
+
+| Modelo | Precision | Recall | mAP@50 | mAP@50-95 |
+|---|---|---|---|---|
+| **Modelo propio `dms_cabin.pt`** | **0.966** | **0.967** | **0.977** | **0.830** |
+| COCO yolov8n (baseline) · `phone` | 0.375 | 0.101 | — | — |
+| COCO yolov8n (baseline) · `drinking` | 0.000 | 0.000 | — | — |
+
+**Conclusión:** el detector genérico COCO que se usaba antes apenas reconoce el
+móvil en posición de cabina (recall **10%**) y **no detecta** vasos/botellas
+(recall **0%**), porque está entrenado para objetos a escala de escena, no en
+mano/cerca de la cara. El modelo propio alcanza **96-97%** de precision/recall
+→ no solo iguala, **multiplica por ~10** el rendimiento del baseline en esta
+tarea. Reproducible con `ml/compare_baseline.py`.
+
+> Honestidad metodológica: parte de las etiquetas reales (State Farm) se generó
+> con asistencia de un modelo COCO, lo que favorece ligeramente la comparación;
+> la porción sintética tiene cajas independientes. El resultado (recall 97% vs
+> 10%) es lo bastante amplio como para ser concluyente. Sigue habiendo *domain
+> gap* sintético→webcam real, mitigable mezclando capturas propias.
+
+![Matriz de confusión (modelo propio)](eval/dms_confusion_matrix.png)
+
+---
+
 ## 4. Comparativa con la competencia
 
 Frente a las plataformas líderes de seguridad de flotas (Samsara, Motive,
