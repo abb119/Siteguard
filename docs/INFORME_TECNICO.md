@@ -147,6 +147,73 @@ tarea. Reproducible con `ml/compare_baseline.py`.
 
 ---
 
+## 3.ter Detectores DMS de dos modelos (cabina + cinturón)
+
+La versión final del monitor sustituye el detector genérico COCO y el modelo de
+cinturón de terceros (vista parabrisas) por **dos detectores YOLO propios**,
+entrenados **solo con datasets públicos de internet** (sin grabación propia) con
+un pipeline reproducible en `dms_data/scripts/` (descarga → homogeneización →
+deduplicado/split → entrenamiento → evaluación → export).
+
+| Modelo | Fichero | Clases | Base | Fuentes públicas |
+|---|---|---|---|---|
+| **A — cabina** | `dms_cabin.pt` | phone · bottle · cup | YOLO26s | COCO 2017 (subset móvil/botella/vaso) + State Farm (móvil real de cabina) |
+| **B — cinturón** | `dms_seatbelt.pt` | belt_on · belt_off | YOLO26s | 2 datasets Roboflow **de interior** (vista frontal del ocupante) |
+
+**Curación metodológica (lo relevante del trabajo):**
+- **Verificación de punto de vista.** El DMS usa una webcam *interior* frontal.
+  Varios datasets públicos de cinturón resultaron ser vistas *exteriores* de
+  cámara de tráfico / a través del parabrisas (el mismo punto de vista que hacía
+  fallar el `seatbelt.pt` antiguo). Se inspeccionaron visualmente y se
+  **descartaron**; solo se conservaron fuentes de **interior frontal**.
+- **Homogeneización de clases verificada contra cada `data.yaml`** (los índices
+  del fichero de etiquetas, no el nombre mostrado). P. ej. ambos sets de cinturón
+  ordenan `no-seatbelt=0, seatbelt=1`, inverso al canónico → remapeo `{0→belt_off,
+  1→belt_on}`.
+- **Deduplicado perceptual (pHash, Hamming ≤ 4)** antes del split: elimina fotogramas
+  casi idénticos de vídeo (en cinturón, ~75 % del bruto) que, de otro modo, fugarían
+  entre *train* y *test* e inflarían las métricas.
+- **Convención de caja del cinturón:** la caja marca la región **torso/hombro del
+  ocupante** (belt_on = banda diagonal visible; belt_off = sin banda), no el objeto
+  cinta.
+
+### Resultados sobre el split de **test** (Ultralytics `val`, GPU RTX 2070)
+
+| Modelo | Imgs test | Precision | Recall | mAP@50 | mAP@50-95 |
+|---|---:|---:|---:|---:|---:|
+| **A — cabina** | 560 | 0.681 | 0.541 | 0.606 | 0.418 |
+| **B — cinturón** | 211 | **0.926** | **0.821** | **0.927** | **0.574** |
+
+**Por clase:**
+
+| Modelo · clase | P | R | mAP@50 | mAP@50-95 |
+|---|---:|---:|---:|---:|
+| cabina · phone | 0.642 | 0.606 | 0.639 | 0.451 |
+| cabina · cup | 0.712 | 0.590 | 0.659 | 0.486 |
+| cabina · bottle | 0.689 | 0.427 | 0.520 | 0.316 |
+| cinturón · belt_on | 0.938 | 0.874 | **0.943** | 0.588 |
+| cinturón · belt_off | 0.915 | 0.768 | **0.912** | 0.561 |
+
+**Lectura honesta:**
+- **El detector de cinturón supera con holgura el criterio** (mAP@50 ≥ 0.6 por clase):
+  **0.94 / 0.91**. Resuelve el problema original (no se veían las alertas de no-uso
+  de cinturón) porque, a diferencia del modelo de parabrisas previo, está entrenado
+  con el **mismo punto de vista interior** que la webcam del monitor.
+- En **cabina**, `phone` y `cup` cumplen (~0.64–0.66); `bottle` queda por debajo
+  (0.52) por la dificultad real de COCO (botellas pequeñas/de escena, no en mano).
+  El antiguo 0.977 era artificialmente alto (etiquetas auto-generadas y fotogramas
+  fáciles); este número es el honesto sobre imágenes diversas. Para el DMS el
+  impacto es menor: la alerta de *beber* une `bottle` ∪ `cup`, y `cup` es sólido.
+  Se probó **rebalancear el dataset hacia `bottle`** (×3.6 instancias) para cerrar
+  la barra: subió `bottle` levemente pero **degradó `phone` y `cup` y el mAP global**
+  (0.61 → 0.53), así que se descartó y se mantiene el modelo equilibrado. Cerrar
+  `bottle` de forma robusta pediría un modelo mayor (YOLO26m/l) o datos de cabina
+  específicos (botella en mano), no más imágenes de escena de COCO.
+
+![Matriz de confusión — cinturón](eval/dms_seatbelt_confusion_matrix.png)
+
+---
+
 ## 4. Comparativa con la competencia
 
 Frente a las plataformas líderes de seguridad de flotas (Samsara, Motive,

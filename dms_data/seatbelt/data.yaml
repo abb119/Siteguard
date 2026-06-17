@@ -1,0 +1,8 @@
+# Model B — seatbelt state (box on the occupant's torso region)
+path: C:/Users/abep2/.gemini/antigravity/scratch/Siteguard/dms_data/seatbelt
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: belt_on
+  1: belt_off

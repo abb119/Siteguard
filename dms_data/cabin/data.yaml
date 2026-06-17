@@ -1,0 +1,9 @@
+# Model A — in-cabin distraction objects
+path: C:/Users/abep2/.gemini/antigravity/scratch/Siteguard/dms_data/cabin
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: phone
+  1: bottle
+  2: cup

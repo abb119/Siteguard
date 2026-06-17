@@ -100,6 +100,19 @@ app/app/static/driver_events/
 # ML eval artifacts (downloadable / regenerated)
 datasets/
 runs/
+# DMS two-model pipeline: ignore heavy data, keep scripts + data.yaml + ATTRIBUTION
+dms_data/raw/
+dms_data/staging/
+dms_data/cabin/images/
+dms_data/cabin/labels/
+dms_data/seatbelt/images/
+dms_data/seatbelt/labels/
+dms_data/weights/
+dms_data/runs/
 # but DO keep the committed evaluation figures for the report
 !docs/eval/confusion_matrix.png
 !docs/eval/dms_confusion_matrix.png
+
+# Pretrained base weights (downloaded on demand by Ultralytics)
+yolo26*.pt
+yolo11*.pt
