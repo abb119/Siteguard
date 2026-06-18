@@ -300,6 +300,7 @@ class DmsSession:
             a_no_seatbelt=a_no_seatbelt,
             seatbelt=seatbelt,
             phone_detected=phone_detected,
+            objects=objects,
             eye_reliable=self.eye_reliable,
             low_light=self.low_light,
         )
@@ -559,8 +560,15 @@ class DmsSession:
         distractions: List[Dict] = []
         if phone:
             distractions.append({"type": "cell_phone", "confidence": 0.9})
-        if a_drinking:
-            distractions.append({"type": "drinking", "confidence": 0.8})
+        # Show a drink as soon as it's detected (raw), not only on the sustained
+        # near-face alert — otherwise a clearly-held bottle/cup looks "undetected".
+        _drink = next((o for o in (k.get("objects") or [])
+                       if o.get("type") in ("cup", "bottle")), None)
+        if a_drinking or _drink:
+            distractions.append({
+                "type": "drinking",
+                "confidence": float(_drink.get("confidence", 0.8)) if _drink else 0.8,
+            })
         if a_lookdown:
             distractions.append({"type": "looking_down", "confidence": 0.8})
 
@@ -583,7 +591,23 @@ class DmsSession:
                 "confidence": 1.0,
                 "class_id": 0,
                 "class_name": label,
+                "kind": "face",
             })
+
+        # Object-detector boxes (phone / bottle / cup) so the driver actually
+        # SEES what was detected, independent of the sustained alert logic.
+        _obj_label = {"cell_phone": "Móvil", "bottle": "Botella", "cup": "Vaso"}
+        for o in (k.get("objects") or []):
+            ot = o.get("type")
+            box = o.get("box")
+            if ot in _obj_label and box:
+                detections.append({
+                    "box": [float(v) for v in box],
+                    "confidence": float(o.get("confidence", 0.0)),
+                    "class_id": 1,
+                    "class_name": _obj_label[ot],
+                    "kind": "object",
+                })
 
         return {
             # ── legacy-compatible keys ──

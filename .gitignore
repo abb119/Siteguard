@@ -116,3 +116,7 @@ dms_data/runs/
 # Pretrained base weights (downloaded on demand by Ultralytics)
 yolo26*.pt
 yolo11*.pt
+
+# Local dev preview config + generated code bundle
+.claude/
+frontend_ux_ui_bundle.md

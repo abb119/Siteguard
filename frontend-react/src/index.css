@@ -93,6 +93,10 @@
   .tnum { font-variant-numeric: tabular-nums; }
 }
 
+/* Landing control-room log: new event slides in */
+@keyframes animIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.anim-in { animation: animIn 0.45s ease; }
+
 /* Leaflet map — HUD theming */
 .leaflet-container {
   background: #0a0a0b;
@@ -132,3 +136,13 @@
 ::-webkit-scrollbar-track { background: #0a0a0b; }
 ::-webkit-scrollbar-thumb { background: #26262b; border: 2px solid #0a0a0b; }
 ::-webkit-scrollbar-thumb:hover { background: #454540; }
+
+/* Accessibility: honour the OS "reduce motion" setting everywhere */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

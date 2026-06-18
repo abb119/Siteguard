@@ -18,7 +18,7 @@ type DriverResult = {
     distractions: Array<{ type: string; confidence: number }>;
     is_alert: boolean;
     risk_level: "low" | "medium" | "high";
-    detections: Array<{ box: number[]; class_name?: string; confidence?: number }>;
+    detections: Array<{ box: number[]; class_name?: string; confidence?: number; kind?: string }>;
     latency_ms?: number;
     // Phase-1 fields (v2 stream)
     calibrating?: boolean;
@@ -63,6 +63,12 @@ const DEFAULT_STATUS: DriverResult = {
     eye_reliable: true,
     seatbelt: "unknown",
     alerts: [],
+};
+
+const DISTRACTION_LABEL: Record<string, string> = {
+    cell_phone: "Uso de móvil",
+    drinking: "Bebida detectada",
+    looking_down: "Mirando abajo",
 };
 
 export const DriverVideoFeed: React.FC<{ driverId?: string }> = ({ driverId }) => {
@@ -337,13 +343,24 @@ export const DriverVideoFeed: React.FC<{ driverId?: string }> = ({ driverId }) =
             const critical = result.microsleep || result.risk_level === "high";
             for (const det of result.detections) {
                 const [x1, y1, x2, y2] = det.box;
-                ctx.strokeStyle = critical ? "#ef4444" : result.face_found ? "#22c55e" : "#64748b";
-                ctx.lineWidth = 3;
+                const isObj = det.kind === "object";
+                // object boxes (phone/bottle/cup) in amber + dashed so they read
+                // distinctly from the face/status box.
+                const color = isObj
+                    ? "#ffb000"
+                    : critical ? "#ef4444" : result.face_found ? "#22c55e" : "#64748b";
+                ctx.strokeStyle = color;
+                ctx.lineWidth = isObj ? 2 : 3;
+                ctx.setLineDash(isObj ? [6, 4] : []);
                 ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                ctx.setLineDash([]);
                 if (det.class_name) {
-                    ctx.fillStyle = ctx.strokeStyle;
-                    ctx.font = "bold 15px Inter, sans-serif";
-                    ctx.fillText(det.class_name, x1, y1 - 6);
+                    ctx.font = "bold 13px 'IBM Plex Mono', monospace";
+                    const tw = ctx.measureText(det.class_name).width;
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x1, Math.max(0, y1 - 18), tw + 10, 16);
+                    ctx.fillStyle = "#0a0a0b";
+                    ctx.fillText(det.class_name, x1 + 5, Math.max(11, y1 - 5));
                 }
             }
         };
@@ -462,6 +479,67 @@ export const DriverVideoFeed: React.FC<{ driverId?: string }> = ({ driverId }) =
                 </div>
             </div>
 
+            {/* Persistent status bar — fixed slot so alerts never reflow the metrics below */}
+            <div className="hud-panel hud-corners p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                <div
+                    className={`flex items-center gap-3 sm:min-w-[240px] border-l-2 pl-3 ${status.risk_level === "high"
+                        ? "border-alarm-400"
+                        : status.risk_level === "medium"
+                            ? "border-amber-400"
+                            : "border-phosphor-400"
+                        }`}
+                >
+                    {status.is_alert ? (
+                        <CheckCircle className="text-phosphor-400 shrink-0" size={24} />
+                    ) : (
+                        <AlertTriangle className="text-alarm-400 shrink-0" size={24} />
+                    )}
+                    <div className="leading-tight">
+                        <div className="font-mono uppercase tracking-wide text-sm">
+                            {status.is_alert ? "Conductor alerta" : "Atención requerida"}
+                        </div>
+                        <div className="hud-label">
+                            Riesgo ·{" "}
+                            <span
+                                className={
+                                    status.risk_level === "high"
+                                        ? "text-alarm-400"
+                                        : status.risk_level === "medium"
+                                            ? "text-amber-400"
+                                            : "text-phosphor-400"
+                                }
+                            >
+                                {status.risk_level}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex-1 flex flex-wrap items-center gap-2 sm:justify-end min-h-[2rem]">
+                    {status.calibrating && activeMode && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-amber-400/40 text-amber-300 font-mono uppercase text-[11px] tracking-wider">
+                            <ScanFace size={13} /> Calibrando
+                        </span>
+                    )}
+                    {(status.alerts?.length ?? 0) > 0 ? (
+                        status.alerts!.map((a, i) => {
+                            const hot = a.severity === "critical" || a.severity === "high";
+                            return (
+                                <span
+                                    key={i}
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 border font-mono uppercase text-[11px] tracking-wider ${hot ? "border-alarm-400/50 text-alarm-300" : "border-amber-400/50 text-amber-300"
+                                        }`}
+                                >
+                                    <span className={`w-1.5 h-1.5 ${hot ? "bg-alarm-400" : "bg-amber-400"}`} />
+                                    {a.message}
+                                </span>
+                            );
+                        })
+                    ) : (
+                        !status.calibrating && <span className="hud-label">Sin alertas activas</span>
+                    )}
+                </div>
+            </div>
+
             <div className="grid lg:grid-cols-3 gap-6">
                 {/* Video Feed */}
                 <div className="lg:col-span-2 relative hud-panel hud-corners overflow-hidden aspect-video">
@@ -476,58 +554,6 @@ export const DriverVideoFeed: React.FC<{ driverId?: string }> = ({ driverId }) =
 
                 {/* Status Panel */}
                 <div className="space-y-4">
-                    {/* Calibration banner */}
-                    {status.calibrating && activeMode && (
-                        <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-sm flex items-center gap-2">
-                            <ScanFace size={18} /> Calibrando línea base ocular… mira al frente
-                        </div>
-                    )}
-
-                    {/* Risk Level */}
-                    <div className={`hud-panel p-4 border-l-2 ${status.risk_level === "high" ? "border-alarm-400" : status.risk_level === "medium" ? "border-amber-400" : "border-phosphor-400"}`}>
-                        <div className="flex items-center gap-3 mb-3">
-                            {status.is_alert ? (
-                                <CheckCircle className="text-phosphor-400" size={22} />
-                            ) : (
-                                <AlertTriangle className="text-alarm-400" size={22} />
-                            )}
-                            <span className="font-mono uppercase tracking-wide text-base">
-                                {status.is_alert ? "Conductor alerta" : "¡Atención requerida!"}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="hud-label">Nivel de riesgo</span>
-                            <span className={`font-mono uppercase text-sm tracking-widest ${status.risk_level === "high" ? "text-alarm-400" : status.risk_level === "medium" ? "text-amber-400" : "text-phosphor-400"}`}>
-                                {status.risk_level}
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Active alerts */}
-                    {(status.alerts?.length ?? 0) > 0 && (
-                        <div className="hud-panel p-4">
-                            <div className="flex items-center gap-2 mb-3">
-                                <AlertTriangle className="text-amber-400" size={18} />
-                                <span className="font-mono uppercase tracking-wide text-sm">Alertas activas</span>
-                            </div>
-                            <ul className="space-y-2">
-                                {status.alerts!.map((a, i) => (
-                                    <li key={i} className="flex items-center gap-2 text-sm">
-                                        <span
-                                            className={`w-2 h-2 ${a.severity === "critical"
-                                                ? "bg-red-500"
-                                                : a.severity === "high"
-                                                    ? "bg-orange-500"
-                                                    : "bg-yellow-500"
-                                                }`}
-                                        />
-                                        <span className="text-slate-200">{a.message}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-
                     {/* Fatigue score */}
                     <div className="hud-panel p-4">
                         <div className="flex items-center gap-3 mb-2">
@@ -620,7 +646,7 @@ export const DriverVideoFeed: React.FC<{ driverId?: string }> = ({ driverId }) =
                             <ul className="space-y-2">
                                 {status.distractions.map((d, i) => (
                                     <li key={i} className="flex items-center justify-between text-sm">
-                                        <span className="text-red-400 capitalize">{d.type.replace("_", " ")}</span>
+                                        <span className="text-red-400">{DISTRACTION_LABEL[d.type] ?? d.type.replace("_", " ")}</span>
                                         <span className="text-slate-400">{(d.confidence * 100).toFixed(0)}%</span>
                                     </li>
                                 ))}

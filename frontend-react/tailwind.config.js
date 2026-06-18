@@ -46,6 +46,9 @@ export default {
                 blue: steel, sky: steel, indigo: steel, violet: steel, purple: steel, fuchsia: steel,
                 // Named families for new hand-built HUD components
                 charcoal, phosphor, steel, alarm,
+                // Landing "Telemetría" signal hue (oscilloscope trace) + true void
+                trace: "#38E1C6",
+                void: "#07090A",
                 // Semantic tokens for new hand-built HUD components
                 hud: {
                     bg: "#0a0a0b", panel: "#121214", line: "#26262b",
@@ -59,6 +62,8 @@ export default {
                 sans: ['"IBM Plex Sans"', "system-ui", "sans-serif"],
                 mono: ['"IBM Plex Mono"', "ui-monospace", "monospace"],
                 display: ['"IBM Plex Mono"', "monospace"],
+                // Landing display face — technical mono with character
+                martian: ['"Martian Mono"', '"IBM Plex Mono"', "monospace"],
             },
             // Square everything off — kill the rounded-2xl "AI card" look
             borderRadius: {

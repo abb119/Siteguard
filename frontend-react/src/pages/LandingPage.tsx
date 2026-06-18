@@ -11,6 +11,7 @@ import {
     Activity,
 } from "lucide-react";
 import DotGrid from "../components/DotGrid";
+import { ControlRoomSignal } from "../components/ControlRoomSignal";
 import { useAuth } from "../auth/AuthContext";
 
 export const LandingPage: React.FC = () => {
@@ -114,6 +115,17 @@ export const LandingPage: React.FC = () => {
                             <Readout value="24/7" label="Vigilancia" />
                         </div>
                     </div>
+                </div>
+            </section>
+
+            {/* Live signal — 3-channel oscilloscope (obra · vía · red) */}
+            <section id="senal" className="py-16 px-6 border-b border-hud-line">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex items-end justify-between mb-8 border-b border-hud-line pb-5">
+                        <h2 className="font-mono text-2xl md:text-4xl font-bold tracking-tight">SEÑAL EN VIVO</h2>
+                        <span className="hud-label">3 canales · obra · vía · red</span>
+                    </div>
+                    <ControlRoomSignal />
                 </div>
             </section>
 

@@ -9,20 +9,8 @@ import {
     ArrowLeft,
     Volume2,
     VolumeX,
-    Truck,
-    Video,
-    Settings,
-    Map as MapIcon,
 } from "lucide-react";
-import { ServiceLayout } from "../components/ServiceLayout";
-
-const NAV = [
-    { to: "/services/driver", label: "Monitor Conductor", icon: Video },
-    { to: "/services/driver/safe-driving", label: "Conducción Segura", icon: Car },
-    { to: "/services/driver/fleet", label: "Flota", icon: MapIcon },
-    { to: "/services/driver/alerts", label: "Alertas", icon: AlertTriangle },
-    { to: "/services/driver/settings", label: "Configuración", icon: Settings },
-];
+import { DriverLayout } from "../components/ServiceLayout";
 
 // Types for camera results
 type FrontCamResult = {
@@ -458,7 +446,7 @@ export const SafeDrivingPage: React.FC = () => {
     };
 
     return (
-        <ServiceLayout serviceName="Sistema ADAS" serviceIcon={<Truck size={22} />} accentColor="amber" navItems={NAV}>
+        <DriverLayout>
             <div className="p-4 md:p-8">
                 {/* In-page header */}
                 <div className="flex flex-wrap items-end justify-between gap-4 border-b border-hud-line pb-5 mb-6">
@@ -622,6 +610,6 @@ export const SafeDrivingPage: React.FC = () => {
                     </div>
                 </div>
             </div>
-        </ServiceLayout>
+        </DriverLayout>
     );
 };

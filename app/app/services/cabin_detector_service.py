@@ -82,7 +82,7 @@ class CabinDetector:
         provide the belt state (so routes.py can drop the old seatbelt.pt)."""
         return self.seatbelt_model is not None or self._cabin_has_belt_classes()
 
-    def detect(self, frame_bgr, conf: float = 0.4) -> Tuple[List[Dict], Optional[bool]]:
+    def detect(self, frame_bgr, conf: float = 0.30) -> Tuple[List[Dict], Optional[bool]]:
         """Returns (objects for DmsSession, seatbelt True/False/None)."""
         objects: List[Dict] = []
         belt_on = belt_off = False
@@ -90,7 +90,9 @@ class CabinDetector:
             return objects, None
 
         try:
-            for r in self.cabin_model(frame_bgr, imgsz=416, conf=conf,
+            # 512px (vs 416) + a lower conf noticeably lift recall on the small
+            # in-cabin objects (phone/bottle/cup held in hand).
+            for r in self.cabin_model(frame_bgr, imgsz=512, conf=conf,
                                       verbose=False, device=self.device):
                 for b in r.boxes:
                     name = str(r.names[int(b.cls[0].item())]).lower().strip()

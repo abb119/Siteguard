@@ -10,6 +10,11 @@ import {
     X,
     LogIn,
     LogOut,
+    Truck,
+    Car,
+    AlertTriangle,
+    Settings,
+    Map as MapIcon,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
@@ -163,6 +168,26 @@ export const PPELayout: React.FC<{ children: React.ReactNode }> = ({ children })
             { to: "/services/ppe/upload", label: "Subir Video", icon: Upload },
             { to: "/services/ppe/history", label: "Historial", icon: History },
         ]}
+    >
+        {children}
+    </ServiceLayout>
+);
+
+// Shared layout for the whole Driver / ADAS group (single source of nav truth)
+export const DRIVER_NAV: NavItem[] = [
+    { to: "/services/driver", label: "Monitor Conductor", icon: Video },
+    { to: "/services/driver/safe-driving", label: "Conducción Segura", icon: Car },
+    { to: "/services/driver/fleet", label: "Flota", icon: MapIcon },
+    { to: "/services/driver/alerts", label: "Alertas", icon: AlertTriangle },
+    { to: "/services/driver/settings", label: "Configuración", icon: Settings },
+];
+
+export const DriverLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <ServiceLayout
+        serviceName="Sistema ADAS"
+        serviceIcon={<Truck size={22} />}
+        accentColor="amber"
+        navItems={DRIVER_NAV}
     >
         {children}
     </ServiceLayout>
