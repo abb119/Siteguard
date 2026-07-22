@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import {
     ShieldCheck,
     Truck,
-    Lock,
     ArrowRight,
     Eye,
     Bell,
@@ -11,7 +10,6 @@ import {
     Activity,
 } from "lucide-react";
 import DotGrid from "../components/DotGrid";
-import { ControlRoomSignal } from "../components/ControlRoomSignal";
 import { useAuth } from "../auth/AuthContext";
 
 export const LandingPage: React.FC = () => {
@@ -30,8 +28,6 @@ export const LandingPage: React.FC = () => {
                     <nav className="hidden md:flex items-center gap-8 hud-label">
                         <a href="#services" className="hover:text-amber-400 transition-colors">Módulos</a>
                         <a href="#features" className="hover:text-amber-400 transition-colors">Capacidades</a>
-                        <Link to="/metrics" className="hover:text-amber-400 transition-colors">Métricas</Link>
-                        <a href="#contact" className="hover:text-amber-400 transition-colors">Contacto</a>
                     </nav>
                     <div className="hidden md:flex items-center gap-4">
                         <span className="flex items-center gap-2">
@@ -88,11 +84,11 @@ export const LandingPage: React.FC = () => {
 
                         <p className="text-hud-dim text-lg max-w-2xl mb-10 leading-relaxed border-l-2 border-hud-line pl-5">
                             Detección de riesgos en tiempo real antes de que se conviertan en
-                            accidentes. EPP, fatiga del conductor y ciberseguridad — un solo panel
+                            accidentes. EPP, ergonomía y fatiga del conductor en un solo panel
                             de control.
                         </p>
 
-                        <div className="flex flex-col sm:flex-row items-start gap-4 mb-16">
+                        <div className="flex flex-col sm:flex-row items-start gap-4">
                             <a
                                 href="#services"
                                 className="group flex items-center gap-3 px-7 py-3.5 font-mono uppercase tracking-widest text-sm bg-amber-400 text-hud-bg hover:bg-amber-300 transition-colors"
@@ -107,25 +103,7 @@ export const LandingPage: React.FC = () => {
                                 Especificaciones
                             </a>
                         </div>
-
-                        {/* Instrument readouts */}
-                        <div className="grid grid-cols-3 max-w-2xl border border-hud-line divide-x divide-hud-line">
-                            <Readout value="99.2%" label="Precisión" />
-                            <Readout value="<50ms" label="Latencia" />
-                            <Readout value="24/7" label="Vigilancia" />
-                        </div>
                     </div>
-                </div>
-            </section>
-
-            {/* Live signal — 3-channel oscilloscope (obra · vía · red) */}
-            <section id="senal" className="py-16 px-6 border-b border-hud-line">
-                <div className="max-w-7xl mx-auto">
-                    <div className="flex items-end justify-between mb-8 border-b border-hud-line pb-5">
-                        <h2 className="font-mono text-2xl md:text-4xl font-bold tracking-tight">SEÑAL EN VIVO</h2>
-                        <span className="hud-label">3 canales · obra · vía · red</span>
-                    </div>
-                    <ControlRoomSignal />
                 </div>
             </section>
 
@@ -134,10 +112,10 @@ export const LandingPage: React.FC = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="flex items-end justify-between mb-12 border-b border-hud-line pb-5">
                         <h2 className="font-mono text-2xl md:text-4xl font-bold tracking-tight">MÓDULOS</h2>
-                        <span className="hud-label">03 Sistemas</span>
+                        <span className="hud-label">02 Sistemas</span>
                     </div>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-hud-line border border-hud-line">
+                    <div className="grid md:grid-cols-2 gap-px bg-hud-line border border-hud-line">
                         <ServiceCard
                             to="/services/ppe"
                             index="01"
@@ -154,14 +132,6 @@ export const LandingPage: React.FC = () => {
                             description="Sistema ADAS: fatiga, microsueños, distracción y uso de móvil mediante visión por computador."
                             tags={["Fatiga", "PERCLOS", "Distracción"]}
                         />
-                        <ServiceCard
-                            to="/services/security"
-                            index="03"
-                            icon={<Lock size={26} />}
-                            title="Ciberseguridad"
-                            description="Honeytokens, grafos de ataque con auto-remediación y firewall LLM para proteger activos digitales."
-                            tags={["Honeytokens", "Attack Graph", "LLM Gateway"]}
-                        />
                     </div>
                 </div>
             </section>
@@ -175,33 +145,10 @@ export const LandingPage: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-hud-line border border-hud-line">
-                        <FeatureCard icon={<Zap size={22} />} code="LAT" title="Tiempo Real" description="Inferencia en <50ms con aceleración GPU." />
-                        <FeatureCard icon={<Eye size={22} />} code="ACC" title="Alta Precisión" description="Modelos entrenados con 99.2% de precisión." />
+                        <FeatureCard icon={<Zap size={22} />} code="LAT" title="Tiempo Real" description="Inferencia sobre la marcha con aceleración GPU." />
+                        <FeatureCard icon={<Eye size={22} />} code="EXP" title="Explicable" description="Cada alerta se sostiene sobre una métrica que se puede enseñar." />
                         <FeatureCard icon={<Bell size={22} />} code="ALR" title="Alertas Inmediatas" description="Notificación instantánea ante cada violación." />
                         <FeatureCard icon={<Activity size={22} />} code="LOC" title="100% On-Premise" description="Tus datos nunca salen de tu infraestructura." />
-                    </div>
-                </div>
-            </section>
-
-            {/* CTA */}
-            <section id="contact" className="py-24 px-6 border-b border-hud-line">
-                <div className="max-w-4xl mx-auto">
-                    <span className="hud-label">▸ Solicitar acceso</span>
-                    <h2 className="font-mono text-2xl md:text-4xl font-bold tracking-tight mt-3 mb-4">
-                        ¿LISTO PARA PREVENIR ACCIDENTES?
-                    </h2>
-                    <p className="text-hud-dim text-lg mb-10 max-w-2xl">
-                        Agenda una demo y descubre cómo SiteGuard protege a tu equipo en tiempo real.
-                    </p>
-                    <div className="flex flex-col sm:flex-row items-stretch gap-px max-w-xl bg-hud-line border border-hud-line">
-                        <input
-                            type="email"
-                            placeholder="tu@empresa.com"
-                            className="flex-1 px-5 py-4 bg-hud-panel text-hud-bone font-mono text-sm placeholder-hud-dim focus:outline-none focus:bg-hud-bg"
-                        />
-                        <button className="px-7 py-4 font-mono uppercase tracking-widest text-sm bg-amber-400 text-hud-bg hover:bg-amber-300 transition-colors">
-                            Solicitar
-                        </button>
                     </div>
                 </div>
             </section>
@@ -218,7 +165,6 @@ export const LandingPage: React.FC = () => {
                     <div className="flex items-center gap-6 hud-label">
                         <a href="#" className="hover:text-amber-400 transition-colors">Privacidad</a>
                         <a href="#" className="hover:text-amber-400 transition-colors">Términos</a>
-                        <Link to="/metrics" className="hover:text-amber-400 transition-colors">Métricas</Link>
                         <Link to="/admin" className="hover:text-amber-400 transition-colors">Admin</Link>
                     </div>
                     <span className="hud-label">© 2025 · Made in Spain</span>
@@ -227,13 +173,6 @@ export const LandingPage: React.FC = () => {
         </div>
     );
 };
-
-const Readout: React.FC<{ value: string; label: string }> = ({ value, label }) => (
-    <div className="px-5 py-5">
-        <div className="font-mono text-2xl md:text-4xl font-bold text-amber-400 tnum">{value}</div>
-        <div className="hud-label mt-2">{label}</div>
-    </div>
-);
 
 const ServiceCard: React.FC<{
     to: string;

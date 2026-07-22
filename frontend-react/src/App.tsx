@@ -12,11 +12,6 @@ import { PPEUploadPage } from "./pages/PPEUploadPage";
 import { SafeDrivingPage } from "./pages/SafeDrivingPage";
 import { ErgonomicsPage } from "./pages/ErgonomicsPage";
 import { VehicleControlPage } from "./pages/VehicleControlPage";
-import { SecurityDashboard } from "./pages/SecurityDashboard";
-import { HoneytokensPage } from "./pages/HoneytokensPage";
-import { AttackGraphPage } from "./pages/AttackGraphPage";
-import { LlmGatewayPage } from "./pages/LlmGatewayPage";
-import { MetricsPage } from "./pages/MetricsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { AdminPanelPage } from "./pages/AdminPanelPage";
 import { CompanyPanelPage } from "./pages/CompanyPanelPage";
@@ -49,12 +44,6 @@ function App() {
         <RequireAuth roles={["admin", "company"]}><FleetMapPage /></RequireAuth>
       } />
 
-      {/* Security Module */}
-      <Route path="/services/security" element={<SecurityDashboard />} />
-      <Route path="/services/security/honeytokens" element={<HoneytokensPage />} />
-      <Route path="/services/security/attack-graph" element={<AttackGraphPage />} />
-      <Route path="/services/security/llm-gateway" element={<LlmGatewayPage />} />
-
       {/* Job Routes - Nested under services */}
       <Route path="/jobs/:jobId" element={<JobStatusPage />} />
       <Route path="/jobs/:jobId/result" element={<JobResultPage />} />
@@ -66,9 +55,6 @@ function App() {
       <Route path="/company" element={
         <RequireAuth roles={["company", "admin"]}><CompanyPanelPage /></RequireAuth>
       } />
-
-      {/* Technical evaluation / metrics report */}
-      <Route path="/metrics" element={<MetricsPage />} />
     </Routes>
   );
 }
