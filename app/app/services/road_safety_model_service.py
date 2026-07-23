@@ -9,6 +9,7 @@ from typing import List, Dict, Any, Tuple
 from ultralytics import YOLO
 from PIL import Image
 import io
+import threading
 import torch
 import numpy as np
 import cv2
@@ -52,6 +53,11 @@ class RoadSafetyModel:
         # inference, so we recompute it only every Nth front frame and cache it.
         self._lane_counter = 0
         self._last_lane: Dict[str, Any] = {"departure": False, "side": None}
+
+        # Front and rear cameras share this single model instance. Serialize the
+        # GPU inference so two concurrent forward passes don't contend on CUDA
+        # (which tanked the fps and could hang the stream).
+        self._infer_lock = threading.Lock()
         
         # For distance estimation (calibration values)
         # Approximate real widths in meters
@@ -188,7 +194,8 @@ class RoadSafetyModel:
                 results["risk_level"] = "medium"
 
         try:
-            yolo_results = self.model(image, device=self.device, verbose=False, conf=0.4)
+            with self._infer_lock:
+                yolo_results = self.model(image, device=self.device, verbose=False, conf=0.4)
             boxes = yolo_results[0].boxes if yolo_results else []
             lead: Tuple[float, str] | None = None  # (distance, type)
 
@@ -302,7 +309,8 @@ class RoadSafetyModel:
             return results
         
         try:
-            yolo_results = self.model(image, device=self.device, verbose=False, conf=0.35)
+            with self._infer_lock:
+                yolo_results = self.model(image, device=self.device, verbose=False, conf=0.35)
             
             if yolo_results and len(yolo_results) > 0:
                 boxes = yolo_results[0].boxes

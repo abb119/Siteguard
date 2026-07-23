@@ -73,7 +73,7 @@ const CameraFeed: React.FC<{
     const fileInputRef = useRef<HTMLInputElement>(null);
     const wsRef = useRef<WebSocket | null>(null);
     const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
-    const pendingFramesMap = useRef<Map<number, ImageData>>(new Map());
+    const pendingFramesMap = useRef<Map<number, { img: ImageData; sentAt: number }>>(new Map());
     const capturedFrameRef = useRef<ImageData | null>(null);
     const latestResultRef = useRef<FrontCamResult | RearCamResult | null>(null);
 
@@ -148,6 +148,14 @@ const CameraFeed: React.FC<{
                 return;
             }
 
+            // Drop frames that never got a reply (backend dropped the frame or a
+            // slow tunnel) so a lost response can't permanently block the queue
+            // and freeze the feed.
+            const nowTs = performance.now();
+            for (const [id, meta] of pendingFramesMap.current) {
+                if (nowTs - meta.sentAt > 2000) pendingFramesMap.current.delete(id);
+            }
+
             if (pendingFramesMap.current.size >= MAX_IN_FLIGHT) {
                 animationFrameId = requestAnimationFrame(processLoop);
                 return;
@@ -171,7 +179,7 @@ const CameraFeed: React.FC<{
                 ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
                 const frameData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const currentFrameId = ++frameSequence.current;
-                pendingFramesMap.current.set(currentFrameId, frameData);
+                pendingFramesMap.current.set(currentFrameId, { img: frameData, sentAt: performance.now() });
 
                 if (pendingFramesMap.current.size > 100) {
                     const firstKey = pendingFramesMap.current.keys().next().value;
@@ -207,7 +215,7 @@ const CameraFeed: React.FC<{
                 if (data.type === "ready") return;
 
                 if (pendingFramesMap.current.has(data.frame_id)) {
-                    capturedFrameRef.current = pendingFramesMap.current.get(data.frame_id)!;
+                    capturedFrameRef.current = pendingFramesMap.current.get(data.frame_id)!.img;
                     latestResultRef.current = data;
                     pendingFramesMap.current.delete(data.frame_id);
                     for (const key of pendingFramesMap.current.keys()) {
