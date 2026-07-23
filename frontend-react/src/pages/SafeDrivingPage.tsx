@@ -136,17 +136,19 @@ const CameraFeed: React.FC<{
         wsRef.current = ws;
 
         let animationFrameId: number;
-        let isProcessing = false;
-        let loopCount = 0;
+        // Pipeline a few frames instead of the strict send-one-wait-for-reply
+        // loop: that capped fps at 1/round-trip, which through the ngrok tunnel
+        // meant ~3 fps. Letting a couple of frames be in flight hides the
+        // network + inference latency and multiplies the throughput.
+        const MAX_IN_FLIGHT = 2;
 
         const processLoop = () => {
-            loopCount++;
             if (!videoRef.current || ws.readyState !== WebSocket.OPEN) {
                 animationFrameId = requestAnimationFrame(processLoop);
                 return;
             }
 
-            if (isProcessing || pendingFramesMap.current.size > 2) {
+            if (pendingFramesMap.current.size >= MAX_IN_FLIGHT) {
                 animationFrameId = requestAnimationFrame(processLoop);
                 return;
             }
@@ -188,8 +190,6 @@ const CameraFeed: React.FC<{
                         display_height: canvasRef.current?.height ?? canvas.height,
                         image: base64,
                     }));
-                    isProcessing = true;
-                    setTimeout(() => { if (isProcessing) isProcessing = false; }, 5000);
                 }
             }
 
@@ -202,7 +202,6 @@ const CameraFeed: React.FC<{
         };
 
         ws.onmessage = (event) => {
-            isProcessing = false;
             try {
                 const data = JSON.parse(event.data);
                 if (data.type === "ready") return;

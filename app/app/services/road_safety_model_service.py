@@ -41,10 +41,17 @@ class RoadSafetyModel:
         # GPU Check
         if torch.cuda.is_available():
             self.device = 'cuda:0'
+            if self.model is not None:
+                self.model.to(self.device)   # keep weights warm on the GPU
             print(f"🚀 Road Safety using GPU: {torch.cuda.get_device_name(0)}")
         else:
             self.device = 'cpu'
             print("⚠️ Road Safety using CPU (slower)")
+
+        # Lane detection is CPU-bound (Hough) and costs more than the GPU
+        # inference, so we recompute it only every Nth front frame and cache it.
+        self._lane_counter = 0
+        self._last_lane: Dict[str, Any] = {"departure": False, "side": None}
         
         # For distance estimation (calibration values)
         # Approximate real widths in meters
@@ -100,10 +107,18 @@ class RoadSafetyModel:
             return "detected"
 
     def _lane_departure(self, img_rgb) -> Dict[str, Any]:
-        """Estimate lane departure from road line slopes (Hough) in the lower ROI."""
+        """Estimate lane departure from road line slopes (Hough) in the lower ROI.
+
+        The ROI is downscaled to a fixed width before Canny/Hough so the
+        CPU-bound transform stays cheap; the departure offset is a ratio, so it
+        is scale-invariant."""
         try:
-            h, w = img_rgb.shape[:2]
-            roi = img_rgb[int(h * 0.60):, :]
+            roi = img_rgb[int(img_rgb.shape[0] * 0.60):, :]
+            scale_w = 320
+            if roi.shape[1] > scale_w:
+                new_h = max(1, int(roi.shape[0] * scale_w / roi.shape[1]))
+                roi = cv2.resize(roi, (scale_w, new_h))
+            w = roi.shape[1]
             gray = cv2.cvtColor(roi, cv2.COLOR_RGB2GRAY)
             edges = cv2.Canny(gray, 60, 150)
             lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=50,
@@ -156,7 +171,13 @@ class RoadSafetyModel:
         if not self.model:
             return results
 
-        lane = self._lane_departure(img_rgb)
+        # Recompute lane detection only every 3rd frame; reuse the cache in
+        # between (it costs more than the YOLO inference and barely changes
+        # frame to frame).
+        self._lane_counter += 1
+        if self._lane_counter % 3 == 1:
+            self._last_lane = self._lane_departure(img_rgb)
+        lane = self._last_lane
         results["lane"] = lane
         if lane["departure"]:
             results["alerts"].append({
