@@ -76,6 +76,11 @@ const CameraFeed: React.FC<{
     const pendingFramesMap = useRef<Map<number, { img: ImageData; sentAt: number }>>(new Map());
     const capturedFrameRef = useRef<ImageData | null>(null);
     const latestResultRef = useRef<FrontCamResult | RearCamResult | null>(null);
+    // Hold the latest onResult in a ref so the WS effect does NOT depend on it.
+    // The parent passes a fresh inline callback every render, so depending on it
+    // tore the socket down and reconnected on every frame (~3 fps through ngrok).
+    const onResultRef = useRef(onResult);
+    onResultRef.current = onResult;
 
     const [activeMode, setActiveMode] = useState<"webcam" | "file" | null>(null);
     const [wsStatus, setWsStatus] = useState("Selecciona fuente");
@@ -224,7 +229,7 @@ const CameraFeed: React.FC<{
                 }
 
                 if (data.latency_ms) setLatencyMs(data.latency_ms);
-                onResult(data);
+                onResultRef.current(data);
 
                 framesCount.current++;
                 const now = Date.now();
@@ -248,7 +253,7 @@ const CameraFeed: React.FC<{
             if (ws.readyState === WebSocket.OPEN) ws.close();
             cancelAnimationFrame(animationFrameId);
         };
-    }, [activeMode, wsUrl, onResult]);
+    }, [activeMode, wsUrl]);
 
     // Render loop
     useEffect(() => {
