@@ -3,7 +3,10 @@ import { ShieldCheck, Truck, Camera, Upload, AlertTriangle, Users } from "lucide
 import { ServiceLayout } from "../components/ServiceLayout";
 import { PPENavItems } from "./PPEServicePage";
 
-const WS_URL = import.meta.env.VITE_WS_URL || "ws://127.0.0.1:8000";
+// VITE_WS_URL trae el sufijo /ws/ppe-stream (usado por el módulo de EPP); hay
+// que quitarlo para construir la URL de este stream, igual que en las demás
+// páginas. Sin esto, en producción la URL quedaba malformada y no conectaba.
+const WS_URL = (import.meta.env.VITE_WS_URL || "ws://127.0.0.1:8000").replace("/ws/ppe-stream", "");
 
 type ProximityAlert = {
     type: string;
