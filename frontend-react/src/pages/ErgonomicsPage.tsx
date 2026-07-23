@@ -40,7 +40,7 @@ const ZoneChip: React.FC<{
 };
 
 // Professional body diagram component — HUD anatomical schematic
-const BodyDiagram: React.FC<{ issues: PostureIssue[]; score: number }> = ({ issues, score }) => {
+const BodyDiagram: React.FC<{ issues: PostureIssue[] }> = ({ issues }) => {
     const hasSpineIssue = issues.some(i => ["CURVED_SPINE", "SLIGHT_CURVE", "BENT_FORWARD"].includes(i.type));
     const hasLegIssue = issues.some(i => i.type === "STRAIGHT_LEG_LIFT");
     const hasArmIssue = issues.some(i => i.type === "OVERHEAD_REACH");
@@ -66,11 +66,8 @@ const BodyDiagram: React.FC<{ issues: PostureIssue[]; score: number }> = ({ issu
 
     return (
         <div className="hud-panel p-4">
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3">
                 <h3 className="hud-label">Mapa Corporal</h3>
-                <span className={`font-mono text-xs tnum px-2 py-0.5 border ${score < 50 ? "border-alarm-400/50 text-alarm-400" : score < 80 ? "border-amber-400/50 text-amber-400" : "border-phosphor-400/50 text-phosphor-400"}`}>
-                    {Math.round(score)}
-                </span>
             </div>
             <svg viewBox="0 0 120 200" className="w-full h-52 mx-auto">
                 <defs>
@@ -403,7 +400,6 @@ export const ErgonomicsPage: React.FC = () => {
                     ];
 
                     for (const det of r.detections) {
-                        const [x1, y1] = det.box;
                         const score = det.posture_score ?? 100;
 
                         const kps = det.keypoints;
@@ -507,16 +503,6 @@ export const ErgonomicsPage: React.FC = () => {
                             }
                         }
 
-                        // Draw score label with background
-                        const labelText = `Postura: ${score}%`;
-                        ctx.font = "bold 14px 'IBM Plex Mono', monospace";
-                        const textWidth = ctx.measureText(labelText).width;
-
-                        ctx.fillStyle = score < 50 ? "rgba(239,68,68,0.8)" : score < 80 ? "rgba(245,158,11,0.8)" : "rgba(34,197,94,0.8)";
-                        ctx.fillRect(x1, y1 - 24, textWidth + 12, 20);
-
-                        ctx.fillStyle = "#ffffff";
-                        ctx.fillText(labelText, x1 + 6, y1 - 9);
                     }
                 }
             }
@@ -606,23 +592,17 @@ export const ErgonomicsPage: React.FC = () => {
 
                     {/* Right Panel */}
                     <div className="space-y-4">
-                        {/* Score Gauge */}
+                        {/* Workers detected */}
                         <div className="hud-panel p-6 text-center">
-                            <h3 className="hud-label mb-4">Puntuación de postura</h3>
-                            <div className={`text-6xl font-mono font-bold tnum transition-colors duration-300 ${(result?.avg_posture_score ?? 100) < 50 ? "text-alarm-400" :
-                                (result?.avg_posture_score ?? 100) < 80 ? "text-amber-400" : "text-phosphor-400"
-                                }`}>
-                                {result?.avg_posture_score ?? 100}
+                            <div className="text-6xl font-mono font-bold tnum text-hud-bone">
+                                {result?.people_count ?? 0}
                             </div>
-                            <div className="hud-label mt-2">
-                                {result?.people_count ?? 0} trabajadores detectados
-                            </div>
+                            <div className="hud-label mt-2">Trabajadores detectados</div>
                         </div>
 
                         {/* Body Diagram */}
                         <BodyDiagram
                             issues={result?.posture_issues || []}
-                            score={result?.avg_posture_score ?? 100}
                         />
 
                         {/* Issues List */}
