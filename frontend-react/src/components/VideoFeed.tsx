@@ -64,21 +64,6 @@ const StatsPanel: React.FC<{ latestResultRef: React.MutableRefObject<FrameResult
 
   return (
     <div className="hud-panel p-4 space-y-4">
-      {/* High Level Status */}
-      <div className={clsx("p-3 rounded-lg border flex items-center justify-between",
-        stats.compliance === 100 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
-          stats.compliance > 70 ? "bg-orange-500/10 border-orange-500/30 text-orange-400" :
-            "bg-red-500/10 border-red-500/30 text-red-400"
-      )}>
-        <div className="flex items-center gap-3">
-          <div className="text-2xl font-mono font-bold tnum">{stats.compliance}%</div>
-          <div className="text-xs font-mono uppercase tracking-widest">
-            {stats.compliance === 100 ? "Seguro" : "Riesgo detectado"}
-          </div>
-        </div>
-        {stats.compliance < 100 && <AlertTriangle size={24} />}
-      </div>
-
       {/* Grid of Items */}
       <div className="grid grid-cols-2 lg:grid-cols-2 gap-3">
         <StatItem icon="P" label="Personas" count={stats.counts["person"] || 0} color="text-slate-300" />
