@@ -3,7 +3,8 @@ import { Check, ShieldAlert, Calendar, ShieldCheck } from "lucide-react";
 import { getSessionId } from "../utils/session";
 import { ServiceLayout } from "../components/ServiceLayout";
 import { PPENavItems } from "./PPEServicePage";
-import { apiFetch, staticUrl } from "../lib/api";
+import { apiFetch } from "../lib/api";
+import { EvidenceImg } from "../components/EvidenceImg";
 
 const API_HOST = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
@@ -113,11 +114,10 @@ export const AdminDashboard: React.FC = () => {
                                     }`}
                             >
                                 <div className="aspect-video relative overflow-hidden bg-hud-bg">
-                                    <img
-                                        src={staticUrl(v.image_path)}
+                                    <EvidenceImg
+                                        path={v.image_path}
                                         alt={v.violation_type}
                                         className="w-full h-full object-contain"
-                                        loading="lazy"
                                     />
                                     <div className="absolute top-2 right-2 px-2 py-1 bg-hud-bg/80 text-xs font-mono tnum border border-hud-line">
                                         {Math.round(v.confidence * 100)}%

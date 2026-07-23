@@ -6,8 +6,9 @@ import {
     Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 import { ServiceLayout } from "../components/ServiceLayout";
+import { EvidenceImg } from "../components/EvidenceImg";
 import { getSessionId } from "../utils/session";
-import { listDriverSessions, getDriverReport, listDriverEvents, staticUrl } from "../lib/api";
+import { listDriverSessions, getDriverReport, listDriverEvents } from "../lib/api";
 
 const NAV = [
     { to: "/services/driver", label: "Monitor Conductor", icon: Video },
@@ -217,7 +218,7 @@ export const DriverAlertsPage: React.FC = () => {
                                 {events.map((e) => (
                                     <div key={e.id} className="flex items-center gap-4 p-3 hover:bg-hud-bg transition-colors">
                                         {e.image_path ? (
-                                            <img src={staticUrl(e.image_path)} alt="" className="w-16 h-12 object-cover border border-hud-line" />
+                                            <EvidenceImg path={e.image_path} className="w-16 h-12 object-cover border border-hud-line" />
                                         ) : (
                                             <div className="w-16 h-12 bg-hud-bg border border-hud-line" />
                                         )}
